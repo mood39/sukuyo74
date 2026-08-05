@@ -34,9 +34,9 @@ section[hidden]{display:none}
 .plain .pb{font-size:13.5px;line-height:1.85;color:var(--juan)}
 .plain .pb b{color:var(--jin2);font-weight:600}
 label{display:block;font-size:12px;color:var(--mu);letter-spacing:.06em;margin-bottom:4px}
-input{background:var(--gan);border:1px solid var(--line);color:var(--juan);font-family:var(--mono);
+input,select{background:var(--gan);border:1px solid var(--line);color:var(--juan);font-family:var(--mono);
   font-size:15px;padding:8px 10px;border-radius:2px;width:100%}
-input:focus{outline:2px solid var(--jin)}
+input:focus,select:focus{outline:2px solid var(--jin)}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>div{flex:1 1 72px;min-width:0}.row>div.w{flex:1 1 140px}
 .toggle{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--mu)}
 .toggle input{width:auto}
@@ -129,6 +129,7 @@ details.item[open]>summary .isu{color:var(--jin)}
   <button role="tab" id="t1" aria-selected="false" aria-controls="p1">本命</button>
   <button role="tab" id="t2" aria-selected="false" aria-controls="p2">日曆</button>
   <button role="tab" id="t3" aria-selected="false" aria-controls="p3">星盤</button>
+  <button role="tab" id="t8" aria-selected="false" aria-controls="p8">行限</button>
   <button role="tab" id="t4" aria-selected="false" aria-controls="p4">環圖</button>
   <button role="tab" id="t7" aria-selected="false" aria-controls="p7">查表</button>
   <button role="tab" id="t5" aria-selected="false" aria-controls="p5">文獻·宿曜</button>
@@ -149,25 +150,27 @@ details.item[open]>summary .isu{color:var(--jin)}
     <div class="w"><label for="lat">北緯</label><input id="lat" type="number" value="25.0" step="0.001" inputmode="decimal"></div>
   </div>
   <button class="ghost" id="loc">用我目前的位置</button>
+  <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+    <label style="margin-bottom:6px">查詢日期（日曆與行限用；預設今天）</label>
+    <div class="row">
+      <div><label for="dy">年</label><input id="dy" type="number" inputmode="numeric"></div>
+      <div><label for="dm">月</label><input id="dm" type="number" inputmode="numeric"></div>
+      <div><label for="dd">日</label><input id="dd" type="number" inputmode="numeric"></div>
+      <div class="w"><label for="xmode">行限用何法</label><select id="xmode">
+        <option value="both">兩法並列</option><option value="gong">甲・宮限</option><option value="dao">乙・倒限</option>
+      </select></div>
+    </div>
+  </div>
   <div class="toggle"><input id="ts" type="checkbox" checked><label for="ts" style="margin:0">用真太陽時（依經度與均時差修正，古法標準作法）</label></div>
-  <button class="go" id="go">排盤</button>
+  <button class="go" id="go">排盤・查日期</button>
   <div class="tiny" style="margin-top:8px">緯度只有「星盤」分頁的上升點會用到；宿曜不需要緯度。</div>
 </div>
 
 <section id="p0" role="tabpanel"><div id="outIntro"></div></section>
 <section id="p1" role="tabpanel" hidden><div id="outMing"></div></section>
-<section id="p2" role="tabpanel" hidden>
-  <div class="card"><h2>查某一天</h2>
-    <div class="row">
-      <div><label for="dy">年</label><input id="dy" type="number" inputmode="numeric"></div>
-      <div><label for="dm">月</label><input id="dm" type="number" inputmode="numeric"></div>
-      <div><label for="dd">日</label><input id="dd" type="number" inputmode="numeric"></div>
-    </div>
-    <button class="go" id="dgo">查這一天</button>
-  </div>
-  <div id="outRi"></div>
-</section>
+<section id="p2" role="tabpanel" hidden><div id="outRi"></div></section>
 <section id="p3" role="tabpanel" hidden><div id="outQZ"></div></section>
+<section id="p8" role="tabpanel" hidden><div id="outXian"></div></section>
 <section id="p4" role="tabpanel" hidden><div id="outRing"></div></section>
 <section id="p7" role="tabpanel" hidden><div id="outLook"></div></section>
 <section id="p5" role="tabpanel" hidden><div id="wenXY"></div></section>
@@ -1459,6 +1462,60 @@ var DZ = (function (XY) {
   function count() { return BYGAN.length + BYZHI.length; }
   return { GAN: GAN, ZHI: ZHI, BYGAN: BYGAN, BYZHI: BYZHI, byGan: byGan, byZhi: byZhi,
     ganOfYear: ganOfYear, zhiOfYear: zhiOfYear, count: count };
+})(XY);
+
+
+/* 行限（推運）二法 —— 據《張果星宗》正文
+   【甲・宮限】〈限步之說〉：命宮以卯為首，十二宮各領年數。原文明著者九宮——
+     官祿十五、遷移八（成二十有三）、疾厄七（定成三十）、夫妻十一、奴僕四年半、男女四年半、
+     田宅四年半、兄弟五、財帛五。並云「自命宮至疾厄宮屬乎晝，總六十六年」「自夫妻至財帛宮屬乎夜，總三十四年半」。
+     夜半六宮 11+4.5+4.5+4.5+5+5 ＝ 34.5，與原文合。
+     晝半六宮 命・相貌・福德・官祿十五・遷移八・疾厄七 ＝ 66，故命相貌福德三宮合為 36 年，
+     然原文未著其各若干，本引擎照錄存疑、平均分之並明標。
+   【乙・倒限】〈捷見限論〉：「不問坐命何宮何度……只看限行至何度為率」，
+     以限行所至之宿定「限度主」，再看該曜之生克——「逢生者吉，值克者凶」。
+     〈限度主論〉另立限宮主與限度主二者並看。 */
+'use strict';
+var XX = (function (XY) {
+  // 甲・宮限：自命宮起逆行（命→相貌→福德→官祿→遷移→疾厄→妻妾→奴僕→男女→田宅→兄弟→財帛）
+  var SEQ = ['命', '相貌', '福德', '官祿', '遷移', '疾厄', '妻妾', '奴僕', '男女', '田宅', '兄弟', '財帛'];
+  var YEARS = { 官祿: 15, 遷移: 8, 疾厄: 7, 妻妾: 11, 奴僕: 4.5, 男女: 4.5, 田宅: 4.5, 兄弟: 5, 財帛: 5 };
+  var UNKNOWN = ['命', '相貌', '福德'], UNKNOWN_SUM = 36;
+  function yearsOf(g) { return YEARS[g] !== undefined ? YEARS[g] : UNKNOWN_SUM / UNKNOWN.length; }
+  /* 由行年（虛歲）定所行之宮 */
+  function gongLimit(age) {
+    var acc = 0;
+    for (var i = 0; i < SEQ.length; i++) {
+      var y = yearsOf(SEQ[i]);
+      if (age <= acc + y) return { gong: SEQ[i], from: acc + 1, to: acc + y, guessed: UNKNOWN.indexOf(SEQ[i]) >= 0 };
+      acc += y;
+    }
+    return { gong: '（逾百歲，原文所載止於百年半）', from: acc, to: null, guessed: false };
+  }
+  // 乙・倒限：以宿之七曜屬性為限度主；生克依五行
+  var ORD = '角亢氐房心尾箕斗牛女虛危室壁奎婁胃昴畢觜參井鬼柳星張翼軫'.split('');
+  var QI = ['木', '金', '土', '日', '月', '火', '水'];
+  function duZhu(su) { return QI[ORD.indexOf(su) % 7]; }
+  var SHENG = { 木: '水', 火: '木', 土: '火', 金: '土', 水: '金' };   // 生我者
+  var KE = { 木: '金', 火: '水', 土: '木', 金: '火', 水: '土' };       // 克我者
+  var YAOWX = { 太陽: '火', 太陰: '水', 木星: '木', 火星: '火', 土星: '土', 金星: '金', 水星: '水',
+    紫氣: '木', 月孛: '水', 羅睺: '火', 計都: '土' };
+  /* 限行某宿，本盤諸曜對限度主之生克 */
+  function daoXian(su, yaoList) {
+    var wx = duZhu(su);
+    if (wx === '日') wx = '火'; if (wx === '月') wx = '水';
+    var sheng = [], ke = [];
+    yaoList.forEach(function (o) {
+      var w = YAOWX[o.name]; if (!w) return;
+      if (w === SHENG[wx]) sheng.push(o.name);
+      if (w === KE[wx]) ke.push(o.name);
+    });
+    return { su: su, wx: duZhu(su), sheng: sheng, ke: ke,
+      judge: ke.length ? '值克' : (sheng.length ? '逢生' : '無生無克') };
+  }
+  function ageOf(birthYear, targetYear) { return targetYear - birthYear + 1; }   // 虛歲
+  return { SEQ: SEQ, YEARS: YEARS, UNKNOWN: UNKNOWN, UNKNOWN_SUM: UNKNOWN_SUM,
+    yearsOf: yearsOf, gongLimit: gongLimit, duZhu: duZhu, daoXian: daoXian, ageOf: ageOf, YAOWX: YAOWX };
 })(XY);
 
 
@@ -2761,6 +2818,13 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     })());
     ok('得經失經抽驗（木躔角居寅為殿垣俱得・木躔虛居子為失經）', JW.jing('木星', '角', '寅').kind === '殿垣俱得' && !JW.jing('木星', '虛', '子').ok);
     ok('緯克經之所忌合原文（金忌火羅・水忌土計・日忌木氣羅）', JW.JI['金星'].join('') === '火星羅睺' && JW.JI['水星'].join('') === '土星計都' && JW.JI['太陽'].length === 3);
+    ok('行限甲案三段合原文（晝六十六・夜三十四年半・全程百年半）', (function () {
+      var day = ['命', '相貌', '福德', '官祿', '遷移', '疾厄'].reduce(function (s, g) { return s + XX.yearsOf(g); }, 0);
+      var night = ['妻妾', '奴僕', '男女', '田宅', '兄弟', '財帛'].reduce(function (s, g) { return s + XX.yearsOf(g); }, 0);
+      return day === 66 && night === 34.5 && day + night === 100.5;
+    })());
+    ok('行限甲案三宮年數原文未著，已標存疑（命・相貌・福德合三十六年）', XX.UNKNOWN.length === 3 && XX.UNKNOWN_SUM === 36);
+    ok('行限乙案生克判合原文（限行氐土，木克之為值克）', XX.daoXian('氐', [{ name: '木星' }]).judge === '值克');
     ok('四時衰旺合原書（春木秋金夏火冬水為旺・春土夏金秋木冬火為衰）', WS.WANG['春'] === '木' && WS.WANG['秋'] === '金' && WS.SHUAI['春'] === '土' && WS.SHUAI['冬'] === '火');
     ok('土旺於四季月（季末十八日）', WS.season(40).tu === true && WS.season(0).tu === false);
     ok('沖之判合原文舉例（木在丑・金在未）', WS.chong('木星', '丑', [{ name: '金星', zhi: '未' }]).length === 1);
@@ -2860,6 +2924,79 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   }
 
 
+
+  function renderXian() {
+    var v = readInput(), T = resolve(v);
+    var qy = +$('dy').value, qm = +$('dm').value, qd = +$('dd').value;
+    var mode = $('xmode') ? $('xmode').value : 'both';
+    var age = XX.ageOf(v.y, qy);
+    var h = '<div class="plain"><div class="ph">白話說明 · 行限是什麼</div><div class="pb">'
+      + '前面幾頁講的是「這個人是什麼樣」，行限講的是「<b>某一年會怎樣</b>」——這是兩種不同的東西，所以分開放。<br><br>'
+      + '原書有兩套推法，而且它自己就說「<b>倒限則一例不同</b>」，明白承認兩法有異。本引擎兩法並列，'
+      + '<b>不合併、不裁斷哪一套為正</b>。上方可切換只看其中一套。<br><br>'
+      + '斷語全部照錄原文。原書講的是明代的世界觀，不是對你的預測。</div></div>';
+    h += '<div class="card sum"><h2>行限對象</h2>'
+      + '<div class="sumrow"><span class="k">生年</span><span class="v">' + v.y + '</span></div>'
+      + '<div class="sumrow"><span class="k">所查之年</span><span class="v">' + qy + '</span></div>'
+      + '<div class="sumrow"><span class="k">行年（虛歲）</span><span class="v">' + age + '</span></div>'
+      + '<div class="tiny" style="margin-top:8px">虛歲以「所查之年 − 生年 + 1」計，未計生日前後之別。</div></div>';
+    if (age < 1) { h += '<div class="card"><div class="err">所查之年早於生年，無限可行。</div></div>'; $('outXian').innerHTML = h; return; }
+
+    if (mode === 'both' || mode === 'gong') {
+      var gl = XX.gongLimit(age);
+      h += '<div class="card"><h2>甲・宮限　〈限步之說〉</h2>'
+        + '<div class="tiny" style="margin-bottom:10px">十二宮各領若干年，自命宮起逆行：命→相貌→福德→官祿→遷移→疾厄→妻妾→奴僕→男女→田宅→兄弟→財帛。'
+        + '原書云「自命宮至疾厄宮屬乎晝，總六十六年；自夫妻至財帛宮屬乎夜，總三十四年半」，全程一百年半。</div>';
+      h += '<div class="big">' + esc(gl.gong) + '<span class="bigsub">宮</span></div>';
+      if (gl.to) h += '<div class="note">行年 ' + gl.from + ' 至 ' + gl.to + ' 歲行此宮。</div>';
+      if (gl.guessed) h += '<div class="note" style="margin-top:8px"><span class="tag r">存疑</span>'
+        + '命、相貌、福德三宮之年數<b>原文未著</b>，僅知三宮合為三十六年（由晝半六十六年減官祿十五、遷移八、疾厄七而得）。'
+        + '本引擎平均分之各十二年，此為權宜，非原書所載。行年落此三宮者，宮次可能有誤。</div>';
+      h += '<table style="margin-top:12px"><tr><th>宮</th><th>領年</th><th>行年</th></tr>';
+      var acc = 0;
+      XX.SEQ.forEach(function (g) {
+        var yy = XX.yearsOf(g), un = XX.UNKNOWN.indexOf(g) >= 0;
+        h += '<tr' + (g === gl.gong ? ' class="hi"' : '') + '><td class="su">' + esc(g) + '</td>'
+          + '<td class="num">' + yy + (un ? ' ※' : '') + '</td>'
+          + '<td class="num">' + (acc + 1) + '–' + (acc + yy) + '</td></tr>';
+        acc += yy;
+      });
+      h += '</table><div class="tiny" style="margin-top:6px">※ 原文未著其數者。</div>';
+      var zhu = ZG.ZHU[gl.gong === '命' ? '命' : gl.gong];
+      if (zhu) h += '<details class="orig"><summary>看此宮之主論（原文）</summary><div class="jing">' + esc(zhu) + '</div></details>';
+      h += '</div>';
+    }
+
+    if (mode === 'both' || mode === 'dao') {
+      var jdUT2 = XY.toJD(qy, qm, qd, 12 - 8), jdTT2 = jdUT2 + XY.deltaT(qy) / 86400;
+      var tbl2 = XD.table(jdTT2);
+      var sunSu = (function () {
+        var lon = XY.sunLon(jdTT2);
+        for (var i = 0; i < 28; i++) { var o = XY.mod(lon - tbl2[i].ra, 360), w = tbl2[i].width / (365.25 / 360); if (w > 0 && o < w) return tbl2[i].su; }
+        return '角';
+      })();
+      var Tb = resolve(v), tblB = XD.table(Tb.jdTT);
+      var yaoList = [];
+      ['太陽', '太陰'].forEach(function (n) { yaoList.push({ name: n }); });
+      PL.names.forEach(function (n) { yaoList.push({ name: n }); });
+      var dx = XX.daoXian(sunSu, yaoList);
+      h += '<div class="card"><h2>乙・倒限　〈捷見限論〉</h2>'
+        + '<div class="tiny" style="margin-bottom:10px">原文：「不問坐命何宮何度……只看限行至何度為率……'
+        + '逢生者吉，值克者凶。」本引擎以所查之年太陽所躔之宿為限度，取該宿之七曜屬性為限度主。</div>';
+      h += '<div class="chain"><div class="cstep"><div class="ck">限行之宿</div><div class="cv">' + esc(dx.su) + '</div></div>'
+        + '<div class="carr">→ 該宿屬 ' + esc(dx.wx) + ' →</div>'
+        + '<div class="cstep"><div class="ck">斷</div><div class="cv">' + esc(dx.judge) + '</div></div></div>';
+      h += '<div class="note" style="margin-top:10px">'
+        + (dx.sheng.length ? '<span class="tag g">逢生</span>' + esc(dx.sheng.join('・')) + ' 生之。' : '')
+        + (dx.ke.length ? '<span class="tag r">值克</span>' + esc(dx.ke.join('・')) + ' 克之。' : '')
+        + (!dx.sheng.length && !dx.ke.length ? '本盤諸曜於限度主無生無克。' : '') + '</div>';
+      var yj = ZY3.chan('太陽', dx.su);
+      if (yj) h += '<details class="orig"><summary>此宿之玉關歌（原文）</summary><div class="jing">' + esc(yj) + '</div></details>';
+      h += '<div class="tiny" style="margin-top:8px">此法以太陽躔宿定限度，係本引擎依原文「只看限行至何度」所取之一解；'
+        + '原書另有依大限逐年進度者，其起法載於〈定限度法〉〈年分訣〉〈定小限例〉諸節，而<b>該四節正文佚失</b>，故不能全依。</div></div>';
+    }
+    $('outXian').innerHTML = h;
+  }
   function renderIntro() {
     var h = '';
     h += '<div class="card sum"><h2>這個工具跟坊間排盤有什麼不同</h2>'
@@ -3072,7 +3209,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   }
 
   /* ============ 分頁與啟動 ============ */
-  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t3', 'p3'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
+  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t3', 'p3'], ['t8', 'p8'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
   TABS.forEach(function (p) {
     $(p[0]).addEventListener('click', function () {
       TABS.forEach(function (q) { var on = q[0] === p[0]; $(q[0]).setAttribute('aria-selected', on ? 'true' : 'false'); $(q[1]).hidden = !on; });
@@ -3084,8 +3221,8 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     try { renderQZ(); } catch (e) { $('outQZ').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderRing(); } catch (e) { }
   }
-  $('go').addEventListener('click', runAll);
-  $('dgo').addEventListener('click', function () { try { renderRi(); } catch (e) { $('outRi').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; } });
+  $('go').addEventListener('click', function () { runAll(); try { renderRi(); } catch (e) { } try { renderXian(); } catch (e) { } });
+
   (function boot() {
     var n = new Date();
     $('dy').value = n.getFullYear(); $('dm').value = n.getMonth() + 1; $('dd').value = n.getDate();
@@ -3095,6 +3232,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     try { renderWenQZ(); } catch (e) { }
     runAll();
     try { renderRi(); } catch (e) { }
+    try { renderXian(); } catch (e) { }
   })();
   window.FUSION = { selfCheckXY: selfCheckXY, selfCheckQZ: selfCheckQZ, selfCheckMerge: selfCheckMerge };
 })();
