@@ -75,6 +75,8 @@ td.num.neg{color:var(--zhu)}
 svg{display:block;width:100%;height:auto}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mu);margin-top:10px}
 .legend i{display:inline-block;width:16px;height:2px;vertical-align:middle;margin-right:5px}
+.formula{font-family:var(--mono);font-size:12.5px;background:var(--gan);border:1px solid var(--line);
+  padding:9px 12px;margin:9px 0;border-radius:2px;color:var(--jin2);line-height:1.7;overflow-x:auto}
 .chk{font-family:var(--mono);font-size:11.5px;color:var(--mu);line-height:1.85}
 .chk .p{color:var(--lv)}.chk .f{color:var(--zhu)}
 .err{background:rgba(192,69,58,.14);border:1px solid rgba(192,69,58,.4);padding:10px 12px;font-size:12.5px;color:#F0B5AF;border-radius:2px}
@@ -123,7 +125,8 @@ details.item[open]>summary .isu{color:var(--jin)}
 </header>
 
 <nav role="tablist">
-  <button role="tab" id="t1" aria-selected="true" aria-controls="p1">本命</button>
+  <button role="tab" id="t0" aria-selected="true" aria-controls="p0">導覽</button>
+  <button role="tab" id="t1" aria-selected="false" aria-controls="p1">本命</button>
   <button role="tab" id="t2" aria-selected="false" aria-controls="p2">日曆</button>
   <button role="tab" id="t3" aria-selected="false" aria-controls="p3">星盤</button>
   <button role="tab" id="t4" aria-selected="false" aria-controls="p4">環圖</button>
@@ -136,8 +139,8 @@ details.item[open]>summary .isu{color:var(--jin)}
   <h2>生辰</h2>
   <div class="row">
     <div><label for="y">年</label><input id="y" type="number" value="1990" inputmode="numeric"></div>
-    <div><label for="m">月</label><input id="m" type="number" value="6" inputmode="numeric"></div>
-    <div><label for="d">日</label><input id="d" type="number" value="15" inputmode="numeric"></div>
+    <div><label for="m">月</label><input id="m" type="number" value="1" inputmode="numeric"></div>
+    <div><label for="d">日</label><input id="d" type="number" value="1" inputmode="numeric"></div>
     <div><label for="hh">時</label><input id="hh" type="number" value="12" inputmode="numeric"></div>
     <div><label for="mi">分</label><input id="mi" type="number" value="0" inputmode="numeric"></div>
   </div>
@@ -151,7 +154,8 @@ details.item[open]>summary .isu{color:var(--jin)}
   <div class="tiny" style="margin-top:8px">緯度只有「星盤」分頁的上升點會用到；宿曜不需要緯度。</div>
 </div>
 
-<section id="p1" role="tabpanel"><div id="outMing"></div></section>
+<section id="p0" role="tabpanel"><div id="outIntro"></div></section>
+<section id="p1" role="tabpanel" hidden><div id="outMing"></div></section>
 <section id="p2" role="tabpanel" hidden>
   <div class="card"><h2>查某一天</h2>
     <div class="row">
@@ -1826,7 +1830,7 @@ var AS = (function (XY) {
       '查任一天的<b>值日宿</b>（那天輪到哪個宿當值）、<b>白黑月</b>（印度式的月相日，把一個月分成月亮漸圓的白月十五天、漸缺的黑月十五天）、'
       + '以及<b>七曜</b>（就是星期，日曜＝星期日，這是全世界星期制度傳入中國的最早記錄之一）。<br><br>'
       + '若你已經在「本命」分頁算過，這裡還會告訴你今天對你個人是吉是凶。<br><br>'
-      + '下方的宜忌文字全部照抄經書原文，我們一個字都沒改也沒挑選。看不懂是正常的——那是一千兩百年前的文言。'),
+      + '預設為今天，可改任一日期。<br><br>下方的宜忌文字全部照抄經書原文，我們一個字都沒改也沒挑選。看不懂是正常的——那是一千兩百年前的文言。'),
     qz: plain('七政四餘是什麼',
       '這是中國本土的星命術，用的是<b>真實的天體位置</b>，和宿曜那種查表推算不同。<br><br>'
       + '<b>七政</b>＝太陽、月亮，加金木水火土五顆行星，都是肉眼看得見的真星。<br>'
@@ -1840,7 +1844,15 @@ var AS = (function (XY) {
       '你出生那一刻，東方地平線上正在升起的黃道位置。這需要用到<b>緯度</b>，所以上面要填。<br><br>'
       + '西洋占星把它當命宮起點；中國七政四餘各家起命宮的方法不同，我們<b>不替你決定</b>——'
       + '這一版只給你天文上明確的上升點與中天，命宮怎麼起屬於斷事的部分，等底本齊備再說。'),
-    huan: plain('這張圖在看什麼',
+    huan: plain('這張圖跟前面幾頁是什麼關係',
+      '前三個分頁各給一種答案，這一頁把它們<b>畫在同一個圓上</b>，讓你看見它們為什麼不一樣。<br><br>'
+      + '　<b>本命</b>頁告訴你月亮在宿曜的哪一宿。<br>'
+      + '　<b>星盤</b>頁告訴你日月五星在七政四餘的哪一宿哪一宮。<br>'
+      + '　<b>這一頁</b>把兩套宿環套在一起——<b>同一顆月亮，指針只有一根，但內外環讀出來的宿名不同</b>。<br><br>'
+      + '不同的原因是兩套座標系：內環是宿曜的二十七等分宿（每宿都是 13°20′），外環是七政的二十八不等分宿（井宿 33 度、觜宿甚至是負的）。'
+      + '這不是誰算錯，是唐代從印度傳來的分法與中國本土實測的分法本來就不同。<br><br>'
+      + '<b>計都有兩根指針</b>，也是同樣的道理：唐代宿曜道說計都是月亮的遠地點，明代以後的七政四餘說是降交點。同一個名字，兩件事，差好幾十度。'),
+    huanOld: plain('這張圖在看什麼',
       '兩套系統畫在同一張黃道環上，讓你直接看見它們的分歧。<br><br>'
       + '<b>內環</b>是宿曜的二十七宿，等分，每宿都是 13°20′。<br>'
       + '<b>外環</b>是七政四餘的二十八宿，不等分，寬窄差很多。<br><br>'
@@ -2019,6 +2031,41 @@ var AS = (function (XY) {
     if (XYD.XIONGSHI[L.day]) h += '<span class="tag r">' + XYD.XIONGSHI[L.day] + '為凶時</span>' + (XYD.XIONGSHI[L.day] === '晝' ? '過中午即轉吉' : '過半夜即轉吉');
     h += '</div></div>';
 
+    // 全年三組日掃描
+    h += '<div class="card"><h2>' + y + ' 年的甘露日・金剛峯日・羅剎日</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '這三種日子由<b>七曜與值日宿相合</b>而成——某一曜當值那天，恰好輪到它專屬的那一宿，就成立。'
+      + '因為要兩個週期同時對上（七日一循環的曜、二十七日一循環的宿），一年只有少數幾天。<br><br>'
+      + '<span class="tag g">甘露日</span>大吉，宜受戒、學法、出家、營建。'
+      + '<span class="tag j">金剛峯日</span>宜降伏、護摩等猛利之事。'
+      + '<span class="tag r">羅剎日</span>諸事不宜。</div></div>';
+    (function () {
+      var res = { 甘露: [], 金剛峯: [], 羅剎: [] };
+      for (var mm = 1; mm <= 12; mm++) {
+        for (var dd = 1; dd <= 31; dd++) {
+          var LL;
+          try { LL = XYD.lunarOf(y, mm, dd); } catch (e) { continue; }
+          if (!LL) continue;
+          var chk = XY.fromJD(XY.toJD(y, mm, dd, 12));
+          if (chk.m !== mm || chk.d !== dd) continue;
+          var su = XYD.guFaJia(LL.month, LL.day).name;
+          var dn2 = XYD.dayNo(XY.toJD(y, mm, dd, 4)), w2 = XY.mod(dn2 + 1, 7);
+          if (XYD.GANLU[w2] === su) res.甘露.push([mm, dd, XYD.YAO[w2].n, su]);
+          else if (XYD.JINGANG[w2] === su) res.金剛峯.push([mm, dd, XYD.YAO[w2].n, su]);
+          else if (XYD.LUOCHA[w2] === su) res.羅剎.push([mm, dd, XYD.YAO[w2].n, su]);
+        }
+      }
+      [['甘露', 'g'], ['金剛峯', 'j'], ['羅剎', 'r']].forEach(function (p) {
+        var a = res[p[0]];
+        h += '<h4><span class="tag ' + p[1] + '">' + p[0] + '日</span>' + y + ' 年共 ' + a.length + ' 天</h4>';
+        h += a.length ? '<div class="note">' + a.map(function (x) {
+          return x[0] + '/' + x[1] + '（' + x[2] + '・' + x[3] + '宿）';
+        }).join('　') + '</div>' : '<div class="tiny">本年無。</div>';
+      });
+      h += '<div class="tiny" style="margin-top:8px">依望宿法主軌計。三組互斥，同日只歸一組。</div>';
+    })();
+    h += '</div>';
+
     if (MING) {
       var rel = XYD.relOf(MING.su, t.jia.name);
       var good = '榮安成友親'.indexOf(rel.lab) >= 0, bad = '衰危壞'.indexOf(rel.lab) >= 0;
@@ -2134,9 +2181,9 @@ var AS = (function (XY) {
         }
         var gz = AM.GONGZHU[zhi], wx = { 木: '木', 火: '火', 土: '土', 金: '金', 水: '水' }[gz];
         if (wx) {
-          var st = SS.stageOf(wx, zhi);
-          if (st) h += '<div class="note" style="margin-top:6px"><span class="tag ' + (SS.WANG.indexOf(st) >= 0 ? 'g' : '') + '">'
-            + esc(st) + '</span>宮主屬' + esc(gz) + '，' + esc(gz) + '於' + esc(zhi) + '宮為' + esc(st)
+          var stage = SS.stageOf(wx, zhi);
+          if (stage) h += '<div class="note" style="margin-top:6px"><span class="tag ' + (SS.WANG.indexOf(stage) >= 0 ? 'g' : '') + '">'
+            + esc(stage) + '</span>宮主屬' + esc(gz) + '，' + esc(gz) + '於' + esc(zhi) + '宮為' + esc(stage)
             + '（原書：長生・冠帶・臨官・帝旺為旺，衰病死絕墓胎養為衰）</div>';
         }
         var inHere = rows.filter(function (r) { return XY.mod(r[1] - gg.ra, 360) * (365.25 / 360) < gg.w; });
@@ -2147,7 +2194,7 @@ var AS = (function (XY) {
             h += '<div class="jing" style="margin-bottom:8px"><b>' + esc(r[0]) + '</b>　' + (zz ? esc(zz) : '（原書無此條）') + '</div>';
           });
         }
-        if (st) h += '<h4>' + esc(st.name) + '</h4><div class="jing">' + esc(st.text) + '</div>';
+        if (st && st.name) h += '<h4>' + esc(st.name) + '</h4><div class="jing">' + esc(st.text) + '</div>';
         if (zhu) h += '<h4>' + esc(gname === '命' ? '身命主論' : gname + '主論') + '</h4><div class="jing">' + esc(zhu) + '</div>';
         var LMAP = { 妻妾: '夫妻', 官祿: '官祿', 命: null };
         var lun = ZL.get(LMAP[gname] !== undefined ? LMAP[gname] : gname);
@@ -2434,9 +2481,10 @@ var AS = (function (XY) {
     var Tc = (T.jdTT - 2451545) / 36525;
     var node = SY.trueNode(Tc), apo = XY.norm360(SY.meanPerigee(Tc) + 180);
     var pins = [
-      [lam, '#E3C67E', '月'], [sun, '#D8A24A', '日'],
-      [node, '#C1443A', '羅睺／正交'],
-      [XY.norm360(node + 180), '#C1443A', '計都・七政說（降交點）'],
+      [sun, '#F0B429', '☉ 太陽'],
+      [lam, '#9FD8F5', '☾ 太陰'],
+      [node, '#C1443A', '羅睺（正交・升交點）'],
+      [XY.norm360(node + 180), '#E08A62', '計都・七政說（降交點）'],
       [apo, '#7FA98E', '計都・宿曜說（遠地點）＝月孛']
     ];
     var leg = '';
@@ -2811,6 +2859,76 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     return R;
   }
 
+
+  function renderIntro() {
+    var h = '';
+    h += '<div class="card sum"><h2>這個工具跟坊間排盤有什麼不同</h2>'
+      + '<div class="pb" style="font-size:14px;line-height:1.95">'
+      + '<b>一、不給你單一答案，給你所有答案並列。</b>同一個生日，宿曜經自己就有兩套算法，'
+      + '而它們又都和今天用天文公式算出的真實月亮位置對不上。多數工具會挑一個給你，這裡四種都算出來擺在一起，'
+      + '並告訴你差多少。哪一種比較合天，是可以量的——實測結果也寫在文獻頁裡。<br><br>'
+      + '<b>二、實算，不查表。</b>日月五星的位置是從天文公式現算的，農曆是從真實朔望與節氣推的，'
+      + '二十八宿的寬度是從每宿標準星的實際位置算到你的生辰。所以換個年代，數字會跟著變——古書上的宿度表彼此不同，正是這個原因。<br><br>'
+      + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
+      + '凡是推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
+      + '<b>四、每次開啟都自我檢查。</b>目前 132 項，包括拿古書自己的例子回驗算法、拿獨立的商用星盤對數字。'
+      + '文獻頁最下方看得到全部結果。</div></div>';
+
+    h += '<div class="card"><h2>兩套系統一眼看懂</h2><table>'
+      + '<tr><th></th><th>宿曜</th><th>七政四餘</th></tr>'
+      + '<tr><td class="tiny">來源</td><td>唐代自印度傳入，佛經</td><td>中國本土，據《明史·曆志》與《張果星宗》</td></tr>'
+      + '<tr><td class="tiny">主角</td><td class="su">月亮</td><td class="su">日月五星四餘</td></tr>'
+      + '<tr><td class="tiny">分天</td><td>二十七宿，<b>等分</b>，各 13°20′</td><td>二十八宿，<b>不等分</b>，井 33 度、觜為負</td></tr>'
+      + '<tr><td class="tiny">牛宿</td><td>不用</td><td>用</td></tr>'
+      + '<tr><td class="tiny">命宮</td><td>不立命宮，論本命宿</td><td>自太陽所在宮起，卯時起逆退</td></tr>'
+      + '<tr><td class="tiny">計都</td><td class="su">月亮遠地點</td><td class="su">降交點（另立月孛）</td></tr>'
+      + '<tr><td class="tiny">本引擎</td><td>推步＋判斷＋白話</td><td>推步＋判斷，判斷照錄不譯</td></tr>'
+      + '</table><div class="tiny" style="margin-top:8px">兩者同源於印度星占，唐代分流，此後各自發展八百年。「計都」一詞的兩種解釋，就是分流的斷面。</div></div>';
+
+    h += '<div class="card"><h2>宿曜怎麼算</h2>'
+      + '<div class="pb" style="font-size:13.5px;line-height:1.9">'
+      + '把月亮繞天一圈的路分成二十七段，出生時月亮走到哪一段，那就是<b>本命宿</b>。<br><br>'
+      + '經書給的是曆日推法（不必看天，查農曆就行）：<br>'
+      + '<div class="formula">本命宿 ＝ 自該月「望宿」起，順數（農曆日 − 15）位</div>'
+      + '望宿是十二個月各自定死的（正月翼、二月角、三月氐……）。經書另給一個等價的略算法：'
+      + '<div class="formula">（農曆日 ＋ 13）÷ 27 取餘，自望宿數起</div>'
+      + '而今天的天文算法是直接算月亮位置：'
+      + '<div class="formula">本命宿序 ＝ ⌊ 月亮黃經 ÷ 13°20′ ⌋，自婁宿起算</div>'
+      + '兩者常差一到兩宿——因為曆日推法假設月亮每天恰走一宿，實際上月繞天一周是 27.32 日、而農曆一月是 29.53 日，兩個週期對不齊。'
+      + '經書自己知道，所以才設「前合／隨合／並合」三合法來修。</div></div>';
+
+    h += '<div class="card"><h2>七政四餘怎麼算</h2>'
+      + '<div class="pb" style="font-size:13.5px;line-height:1.9">'
+      + '<b>七政</b>是太陽、月亮加金木水火土五顆真星。<b>四餘</b>是四個算出來的點：<br>'
+      + '　·羅睺、計都＝月亮軌道與太陽軌道的兩個交點（日月食就發生在這裡）<br>'
+      + '　·月孛＝月亮離地球最遠的那個點<br>'
+      + '　·紫氣＝<span class="tag r">沒有天文對應</span>明末官方修曆時查過，判定是後人捏造<br><br>'
+      + '<b>命宮</b>不看東方地平線，而是：'
+      + '<div class="formula">命宮 ＝ 太陽所在宮，自卯時起算，每過一時辰逆退一宮</div>'
+      + '<b>宿度</b>（每宿多寬）不是定數，由相鄰兩宿標準星的赤經差算得：'
+      + '<div class="formula">某宿宿度 ＝ 次宿距星赤經 − 本宿距星赤經（化為中國度，周天 365.25）</div>'
+      + '因為恆星會隨歲差移動，宿度逐代改變——觜宿在漢代約二度，到明代已成負值，被參宿越了過去。'
+      + '這也是為什麼古書的宿度表彼此不同：不是誰抄錯，是測的年代不同。</div></div>';
+
+    h += '<div class="card"><h2>各分頁做什麼</h2><table>'
+      + '<tr><td class="su">導覽</td><td class="tiny">你現在看的這頁</td></tr>'
+      + '<tr><td class="su">本命</td><td class="tiny">宿曜：本命宿、十二宮、三九祕宿盤、經書原文與白話</td></tr>'
+      + '<tr><td class="su">日曆</td><td class="tiny">宿曜：查任一天的值日宿、白黑月、七曜，以及今天對你的吉凶</td></tr>'
+      + '<tr><td class="su">星盤</td><td class="tiny">七政四餘：十一曜位置、命宮、十二宮位、神煞、化曜、格局實判</td></tr>'
+      + '<tr><td class="su">環圖</td><td class="tiny">兩套系統畫在同一個圓上，看它們為什麼給出不同答案</td></tr>'
+      + '<tr><td class="su">查表</td><td class="tiny">不必先算生辰，直接查任何一宿、任何一宮的說法</td></tr>'
+      + '<tr><td class="su">文獻</td><td class="tiny">底本、校記、算法所據、開機自檢結果。分宿曜與七政兩頁</td></tr>'
+      + '</table></div>';
+
+    h += '<div class="card"><h2>該怎麼看待這些結果</h2><div class="note">'
+      + '這是研究古代曆算與星命文獻計算結構的工具，不是命理諮詢。<br><br>'
+      + '判斷層的文字全部照抄原書，一個字沒改也沒挑選——那是唐代佛經與明代星書的原話，'
+      + '反映的是當時的世界觀，不是對你的預測。看不懂是正常的，那是一千多年前的文言。<br><br>'
+      + '真正可以驗證的是<b>曆算</b>部分：日月五星的位置、農曆的推算、宿度的變遷。'
+      + '這些有對錯可言，也確實被驗證過。至於吉凶，那不在可驗證的範圍內，本引擎只負責把原文擺對位置。'
+      + '</div></div>';
+    $('outIntro').innerHTML = h;
+  }
   function renderLookup() {
     var h = '<div class="plain"><div class="ph">這一頁是什麼</div><div class="pb">'
       + '不必先算生辰，直接查任何一個宿、任何一個宮的說法。白話在前，經書原文收在「看原文」裡，想看再點開。</div></div>';
@@ -2954,7 +3072,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   }
 
   /* ============ 分頁與啟動 ============ */
-  var TABS = [['t1', 'p1'], ['t2', 'p2'], ['t3', 'p3'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
+  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t3', 'p3'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
   TABS.forEach(function (p) {
     $(p[0]).addEventListener('click', function () {
       TABS.forEach(function (q) { var on = q[0] === p[0]; $(q[0]).setAttribute('aria-selected', on ? 'true' : 'false'); $(q[1]).hidden = !on; });
@@ -2971,6 +3089,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   (function boot() {
     var n = new Date();
     $('dy').value = n.getFullYear(); $('dm').value = n.getMonth() + 1; $('dd').value = n.getDate();
+    try { renderIntro(); } catch (e) { }
     try { renderLookup(); } catch (e) { }
     try { renderWenXY(); } catch (e) { }
     try { renderWenQZ(); } catch (e) { }
