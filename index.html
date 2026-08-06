@@ -1918,11 +1918,36 @@ var PAN = (function () {
   };
   var YMAP = { 太陽: '太陽', 太陰: '太陰', 木星: '歲星', 火星: '熒惑', 土星: '鎮星', 金星: '太白',
     水星: '辰星', 紫氣: '紫氣', 月孛: '月孛', 羅睺: '羅喉', 計都: '計都' };
+  // 長生十二階之白話（原書：長生冠帶臨官帝旺為旺，衰病死絕墓胎養為衰）
+  var STAGE = {
+    長生: ['旺', '像剛出生，氣正在生發——這一宮的事有底氣，起步順'],
+    沐浴: ['平', '像小孩剛洗完澡，還沒定性——這一宮的事容易反覆'],
+    冠帶: ['旺', '像成年戴冠，開始能獨當一面——這一宮的事漸入正軌'],
+    臨官: ['旺', '像出仕任官，正當用事之時——這一宮的事最能施展'],
+    帝旺: ['旺', '氣勢到了頂點——這一宮的事最強，但盛極將轉'],
+    衰: ['衰', '氣開始退——這一宮的事使不上力，主星幫不上忙'],
+    病: ['衰', '像人生病，力氣不繼——這一宮的事容易半途受阻'],
+    死: ['衰', '氣已盡——這一宮的事主星無力可施'],
+    墓: ['衰', '像收進倉庫，藏而不用——這一宮的事宜守不宜攻'],
+    絕: ['衰', '氣斷了——這一宮的事最缺支撐'],
+    胎: ['衰', '像剛受孕，有苗頭而未成形——這一宮的事還在醞釀'],
+    養: ['衰', '像育兒待長，尚需時日——這一宮的事急不得']
+  };
+  // 神煞之白話
+  var SHA = {
+    陽刃: '刀刃之象。原書說這是四個最強的凶煞，主橫禍與破相',
+    劫亡: '劫煞與亡神。也是四馬之地，主奔波動盪；原書說老人行此恐傷壽',
+    四凶: '辰戌丑未四墓之地，三煞連居，主阻滯',
+    的煞: '又叫白衣、破碎，主破敗損耗'
+  };
+  function stage(s) { return STAGE[s] || null; }
+  function sha(s) { return SHA[s] || null; }
   function gong(g) { return GONG[g] || null; }
   function yao(y) { return YAO[y] || null; }
   function ming(y, z) { var k = YMAP[y] || y; return (MING[k] || {})[z] || null; }
   function count() { var n = 0; for (var k in MING) n += Object.keys(MING[k]).length; return n; }
-  return { GONG: GONG, YAO: YAO, MING: MING, YMAP: YMAP, gong: gong, yao: yao, ming: ming, count: count };
+  return { GONG: GONG, YAO: YAO, MING: MING, YMAP: YMAP, STAGE: STAGE, SHA: SHA,
+    gong: gong, yao: yao, ming: ming, stage: stage, sha: sha, count: count };
 })();
 
 
@@ -3365,6 +3390,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     })());
     ok('得經失經抽驗（木躔角居寅為殿垣俱得・木躔虛居子為失經）', JW.jing('木星', '角', '寅').kind === '殿垣俱得' && !JW.jing('木星', '虛', '子').ok);
     ok('緯克經之所忌合原文（金忌火羅・水忌土計・日忌木氣羅）', JW.JI['金星'].join('') === '火星羅睺' && JW.JI['水星'].join('') === '土星計都' && JW.JI['太陽'].length === 3);
+    ok('長生十二階與神煞四類皆有白話', Object.keys(PAN.STAGE).length === 12 && Object.keys(PAN.SHA).length === 4);
     ok('命盤層：十二宮白話十二條・十一曜白話十一條・曜宮專名一百三十二', Object.keys(PAN.GONG).length === 12 && Object.keys(PAN.YAO).length === 11 && PAN.count() === 132);
     ok('專名抽驗（太陽午少微・太白酉天印・計都子天凶）', PAN.ming('太陽', '午') === '少微' && PAN.ming('金星', '酉') === '天印' && PAN.ming('計都', '子') === '天凶');
     ok('靈台星格三十九格（已濾去史墨曰・孔子曰等引語四條）', LT.keys().length === 39 && !LT.get('孔子曰') && !!LT.get('五星連珠') && !!LT.get('水火既濟'));
@@ -3671,10 +3697,22 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         var c = cells[z], ag = ages[c.gong], gb = PAN.gong(c.gong);
         var d = '<h3>' + esc(c.gong) + '宮　' + esc(z) + '　' + esc(c.ci) + '</h3>';
         if (gb) d += '<div class="bai"><b>' + esc(gb[0]) + '</b>　' + esc(gb[1]) + '</div>';
-        d += '<div class="tiny" style="margin:8px 0">宮主為 <b>' + esc(c.zhu) + '</b>'
-          + (c.stage ? '，' + esc(c.zhu) + '於' + esc(z) + '宮為<b>' + esc(c.stage) + '</b>' : '')
-          + (c.sha.length ? '；此宮值 <b>' + esc(c.sha.join('・')) + '</b>' : '')
-          + '；行限 ' + ag[0] + ' 至 ' + ag[1] + ' 歲。</div>';
+        // 宮主與長生
+        var st = c.stage ? PAN.stage(c.stage) : null;
+        d += '<h4>這一宮強不強</h4><div class="bai">'
+          + '每一宮都有一顆<b>宮主星</b>，這一宮的事順不順，先看它的宮主。'
+          + '此宮宮主是 <b>' + esc(c.zhu) + '</b>。'
+          + (st ? '而 ' + esc(c.zhu) + ' 走到 ' + esc(z) + ' 宮，處於「<b>' + esc(c.stage)
+              + '</b>」這一階——' + esc(st[1]) + '，原書歸為<b>' + esc(st[0]) + '</b>。' : '')
+          + '</div>';
+        if (c.sha.length) {
+          d += '<h4>這一宮帶什麼煞</h4><div class="bai">'
+            + '神煞是依出生年定位的一批吉凶標記，落在哪一宮就影響那一宮。此宮帶：<br>'
+            + c.sha.map(function (s) { return '　·<b>' + esc(s) + '</b>——' + esc(PAN.sha(s) || ''); }).join('<br>')
+            + '<br><span class="tiny">帶煞不等於一定凶——原書說「煞落空亡迥不同」，還要看有沒有吉星化解。</span></div>';
+        }
+        d += '<div class="tiny" style="margin:8px 0">行限 ' + ag[0] + ' 至 ' + ag[1] + ' 歲走這一宮'
+          + (ag[2] ? '（此宮年數原書未著，為推算值）' : '') + '。</div>';
         if (c.who.length) {
           d += '<h4>落在此宮的曜</h4>';
           c.who.forEach(function (w) {
