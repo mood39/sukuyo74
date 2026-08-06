@@ -75,6 +75,33 @@ td.num.neg{color:var(--zhu)}
 svg{display:block;width:100%;height:auto}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mu);margin-top:10px}
 .legend i{display:inline-block;width:16px;height:2px;vertical-align:middle;margin-right:5px}
+
+.pangrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}
+.pancell{background:var(--gan);border:1px solid var(--line);border-radius:2px;padding:7px 8px;
+  cursor:pointer;min-height:104px;transition:border-color .15s,background .15s}
+.pancell:hover{border-color:var(--jin);background:rgba(200,164,77,.06)}
+.pancell.pmain{border-color:var(--jin);background:rgba(200,164,77,.11)}
+.pancell .pg{font-family:var(--serif);font-size:15px;color:var(--jin2);letter-spacing:.08em}
+.pancell .pbadge{font-size:10px;background:var(--jin);color:#14203A;padding:1px 5px;border-radius:2px;margin-left:5px;vertical-align:middle}
+.pancell .pz{font-size:11px;color:var(--mu);margin:3px 0 5px}
+.pancell .pw{font-size:12.5px;line-height:1.65}
+.pancell .pw span{display:inline-block;color:var(--shi2);margin-right:6px}
+.pancell .pw i{font-style:normal;color:var(--mu);font-size:10.5px;margin-left:2px}
+.pancell .pw.pnone{color:var(--mu);font-size:11px}
+.pancell .ps{font-size:10.5px;margin-top:4px;line-height:1.6}
+.pancell .ps em{font-style:normal;color:var(--zhu);margin-right:5px}
+.pancell .ps b{color:var(--lv);font-weight:400}
+.pancell .pa{font-family:var(--mono);font-size:10.5px;color:var(--mu);margin-top:4px}
+.pancenter{background:var(--gan2);border:1px solid var(--line);border-radius:2px;padding:14px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.pancenter .pcn{font-family:var(--mono);font-size:13px;color:var(--juan);margin-bottom:8px}
+.pancenter .pcs{font-size:13px;color:var(--jin2);font-family:var(--serif);line-height:1.9}
+.pancenter .pct{font-size:11px;color:var(--mu);margin-top:8px;line-height:1.6}
+.pandetail{background:var(--gan2);border:1px solid var(--line);border-radius:2px;padding:14px 16px;margin-top:12px}
+.pandetail h3{font-family:var(--serif);font-size:17px;color:var(--jin2);margin:0 0 10px;letter-spacing:.1em}
+@media(max-width:600px){.pangrid{gap:3px}.pancell{min-height:92px;padding:5px 6px}
+  .pancell .pg{font-size:13px}.pancell .pw{font-size:11.5px}.pancenter{padding:8px}
+  .pancenter .pcn{font-size:11px}.pancenter .pcs{font-size:11.5px}}
 .formula{font-family:var(--mono);font-size:12.5px;background:var(--gan);border:1px solid var(--line);
   padding:9px 12px;margin:9px 0;border-radius:2px;color:var(--jin2);line-height:1.7;overflow-x:auto}
 .chk{font-family:var(--mono);font-size:11.5px;color:var(--mu);line-height:1.85}
@@ -128,6 +155,7 @@ details.item[open]>summary .isu{color:var(--jin)}
   <button role="tab" id="t0" aria-selected="true" aria-controls="p0">導覽</button>
   <button role="tab" id="t1" aria-selected="false" aria-controls="p1">本命</button>
   <button role="tab" id="t2" aria-selected="false" aria-controls="p2">日曆</button>
+  <button role="tab" id="t9" aria-selected="false" aria-controls="p9">命盤</button>
   <button role="tab" id="t3" aria-selected="false" aria-controls="p3">星盤</button>
   <button role="tab" id="t8" aria-selected="false" aria-controls="p8">行限</button>
   <button role="tab" id="t4" aria-selected="false" aria-controls="p4">環圖</button>
@@ -138,13 +166,10 @@ details.item[open]>summary .isu{color:var(--jin)}
 
 <div class="card">
   <h2>生辰</h2>
-  <div class="row">
-    <div><label for="y">年</label><input id="y" type="number" value="1990" inputmode="numeric"></div>
-    <div><label for="m">月</label><input id="m" type="number" value="1" inputmode="numeric"></div>
-    <div><label for="d">日</label><input id="d" type="number" value="1" inputmode="numeric"></div>
-    <div><label for="hh">時</label><input id="hh" type="number" value="12" inputmode="numeric"></div>
-    <div><label for="mi">分</label><input id="mi" type="number" value="0" inputmode="numeric"></div>
-  </div>
+      <div class="row">
+      <div class="w"><label for="bdate">出生日期</label><input id="bdate" type="date" value="1990-01-01" min="0600-01-01" max="2200-12-31"></div>
+      <div class="w"><label for="btime">出生時刻</label><input id="btime" type="time" value="12:00"></div>
+    </div>
   <div class="row" style="margin-top:10px">
     <div class="w"><label for="lon">東經</label><input id="lon" type="number" value="121.5" step="0.001" inputmode="decimal"></div>
     <div class="w"><label for="lat">北緯</label><input id="lat" type="number" value="25.0" step="0.001" inputmode="decimal"></div>
@@ -153,9 +178,7 @@ details.item[open]>summary .isu{color:var(--jin)}
   <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
     <label style="margin-bottom:6px">查詢日期（日曆與行限用；預設今天）</label>
     <div class="row">
-      <div><label for="dy">年</label><input id="dy" type="number" inputmode="numeric"></div>
-      <div><label for="dm">月</label><input id="dm" type="number" inputmode="numeric"></div>
-      <div><label for="dd">日</label><input id="dd" type="number" inputmode="numeric"></div>
+      <div class="w"><label for="qdate">查詢日期</label><input id="qdate" type="date" min="0600-01-01" max="2200-12-31"></div>
       <div class="w"><label for="xmode">行限用何法</label><select id="xmode">
         <option value="both">兩法並列</option><option value="gong">甲・宮限</option><option value="dao">乙・倒限</option>
       </select></div>
@@ -163,12 +186,13 @@ details.item[open]>summary .isu{color:var(--jin)}
   </div>
   <div class="toggle"><input id="ts" type="checkbox" checked><label for="ts" style="margin:0">用真太陽時（依經度與均時差修正，古法標準作法）</label></div>
   <button class="go" id="go">排盤・查日期</button>
-  <div class="tiny" style="margin-top:8px">緯度只有「星盤」分頁的上升點會用到；宿曜不需要緯度。</div>
+  <div class="tiny" style="margin-top:8px">緯度只有「星盤」分頁的上升點會用到；宿曜不需要緯度。日期可用日曆挑選，範圍 600–2200 年——此為本引擎曆算已驗證之區間。</div>
 </div>
 
 <section id="p0" role="tabpanel"><div id="outIntro"></div></section>
 <section id="p1" role="tabpanel" hidden><div id="outMing"></div></section>
 <section id="p2" role="tabpanel" hidden><div id="outRi"></div></section>
+<section id="p9" role="tabpanel" hidden><div id="outPan"></div></section>
 <section id="p3" role="tabpanel" hidden><div id="outQZ"></div></section>
 <section id="p8" role="tabpanel" hidden><div id="outXian"></div></section>
 <section id="p4" role="tabpanel" hidden><div id="outRing"></div></section>
@@ -1844,6 +1868,64 @@ var LT = (function () {
   return { GE: GE, TONG: TONG, TAN: TAN, get: get, keys: keys };
 })();
 
+/* 命盤分頁之簡述層 —— 十二宮與十一曜之白話
+   說明：此層為今語簡述，供初讀者速覽；原文全在「星盤」與「行限」二頁，未經刪改。
+   曜×宮之專名逐條校自《張果星宗·十一曜入宮樞要歌》。 */
+'use strict';
+var PAN = (function () {
+  // 十二宮之白話
+  var GONG = {
+    命: ['本人', '你這個人本身——性情、體格、一生的基調。原書說看命要「宮主為州郡、度主為縣邑」，兩者都要強才好。'],
+    財帛: ['錢財', '收入與積蓄。原書重「財星入垣、財居財位」，最怕遇到暗耗與空亡。'],
+    兄弟: ['手足', '兄弟姊妹，也含平輩往來。原書說此宮怕見月孛，會「大小無分手足情」。'],
+    田宅: ['家業', '房產、祖業、家庭根基。原書配「天富星」，最喜宮主強而不受克。'],
+    男女: ['子女', '子嗣與晚輩。原書配「天孤星」，此宮怕孤克之曜，太陽獨行則「破損頭男」。'],
+    奴僕: ['部屬', '僕役、下屬、受你支配的人。原書配「僕馬星」，此宮本屬弱陷之位。'],
+    妻妾: ['配偶', '婚姻與伴侶。原書配「天對星」，男以金星為妻，金得正位則妻賢而有姿色。'],
+    疾厄: ['健康', '疾病與災厄。原書配「殺難星」，此宮見凶曜則傷其所主之部位。'],
+    遷移: ['遠行', '搬遷、出外、旅次。原書配「地驛星」，看天馬與地驛二星為主。'],
+    官祿: ['事業', '職位與功名。原書作「官福」，重官星升殿入垣，並看「援星」有無救護。'],
+    福德: ['福分', '福澤與壽元。原書配「福壽星」，宮主相生而有吉星夾輔則主福。'],
+    相貌: ['外表', '形貌與氣度。原書說此宮「名惡弱」，須吉星拱臨才好，最怕羅睺月孛。']
+  };
+  // 十一曜之白話（性情總說）
+  var YAO = {
+    太陽: ['日', '君父之象。主光明、名位、父親。喜居午戌，白天生人得力。'],
+    太陰: ['月', '母后之象。主柔和、田產、母親。喜居酉未，夜間生人得力。'],
+    木星: ['木', '福德之星。主寬厚、學問、財祿。原書曰歲星。'],
+    火星: ['火', '剛猛之星。主急躁、爭鬥、災傷。原書曰熒惑。'],
+    土星: ['土', '沉穩之星。主遲滯、田產、也主阻礙。原書曰鎮星。'],
+    金星: ['金', '和悅之星。主婚姻、財帛、姿容。原書曰太白。'],
+    水星: ['水', '聰慧之星。主口才、文書、機變。原書曰辰星。'],
+    紫氣: ['氣', '四餘之一，續木之氣。主祥瑞、清貴。無天文對應，明末官方判為後人所增。'],
+    月孛: ['孛', '四餘之一，續水之氣。即月亮遠地點。主暗昧、風流、疾病。'],
+    羅睺: ['羅', '四餘之一，續火之氣。即月亮升交點。主刑傷、遮蔽、日月食由此起。'],
+    計都: ['計', '四餘之一，續土之氣。七政四餘以為降交點；唐代宿曜道則以為月亮遠地點。主孤獨、隱伏。']
+  };
+  // 曜×宮之專名（原書所立之位名）
+  var MING = {
+    太陽: { 子: '天宜', 丑: '天幽', 寅: '天桑', 卯: '天烏', 辰: '天爽', 巳: '幽微', 午: '少微', 未: '天輝', 申: '天暗', 酉: '九空', 戌: '天樞', 亥: '天門' },
+    太陰: { 子: '天貴', 丑: '天秀', 寅: '天壽', 卯: '天貞', 辰: '天倉', 巳: '玉鹿', 午: '天光', 未: '天福', 申: '天權', 酉: '天柱', 戌: '天符', 亥: '天變' },
+    歲星: { 子: '天喜', 丑: '天蔭', 寅: '天貴', 卯: '天祿', 辰: '天財', 巳: '天秀', 午: '天壽', 未: '天倉', 申: '天刑', 酉: '天暗', 戌: '鼓舞', 亥: '天福' },
+    熒惑: { 子: '天坎', 丑: '天煞', 寅: '天威', 卯: '天燄', 辰: '天滯', 巳: '天獄', 午: '天旺', 未: '天廢', 申: '天賊', 酉: '天刑', 戌: '天軌', 亥: '天纛' },
+    鎮星: { 子: '天牢', 丑: '天倉', 寅: '天蔭', 卯: '天雄', 辰: '天庫', 巳: '天厄', 午: '天道', 未: '天福', 申: '天壽', 酉: '天貴', 戌: '天獄', 亥: '天暗' },
+    太白: { 子: '玉輅', 丑: '天庫', 寅: '毛頭', 卯: '天敗', 辰: '太常', 巳: '天祿', 午: '天暘', 未: '天倉', 申: '玉堂', 酉: '天印', 戌: '天吊', 亥: '天壽' },
+    辰星: { 子: '天池', 丑: '天蔭', 寅: '天秀', 卯: '天文', 辰: '天貴', 巳: '天壽', 午: '天燥', 未: '天暗', 申: '天權', 酉: '絕祿', 戌: '天庫', 亥: '天綬' },
+    紫氣: { 子: '天瑞', 丑: '天蔭', 寅: '天貴', 卯: '天福', 辰: '華蓋', 巳: '天秀', 午: '天光', 未: '天倉', 申: '天壽', 酉: '天貞', 戌: '天符', 亥: '天祥' },
+    月孛: { 子: '天渾', 丑: '天暗', 寅: '天煞', 卯: '玉垣', 辰: '天滯', 巳: '天厄', 午: '天燥', 未: '天悲', 申: '天賊', 酉: '天媚', 戌: '天吊', 亥: '天池' },
+    羅喉: { 子: '天隔', 丑: '赤道', 寅: '天燄', 卯: '天刑', 辰: '天滯', 巳: '地隔', 午: '天燥', 未: '天煞', 申: '伏斷', 酉: '天悴', 戌: '天衛', 亥: '天纛' },
+    計都: { 子: '天凶', 丑: '四喜', 寅: '天淵', 卯: '玉柄', 辰: '暴敗', 巳: '天水', 午: '天巋', 未: '四鬼', 申: '天賊', 酉: '天悴', 戌: '天窘', 亥: '天武' }
+  };
+  var YMAP = { 太陽: '太陽', 太陰: '太陰', 木星: '歲星', 火星: '熒惑', 土星: '鎮星', 金星: '太白',
+    水星: '辰星', 紫氣: '紫氣', 月孛: '月孛', 羅睺: '羅喉', 計都: '計都' };
+  function gong(g) { return GONG[g] || null; }
+  function yao(y) { return YAO[y] || null; }
+  function ming(y, z) { var k = YMAP[y] || y; return (MING[k] || {})[z] || null; }
+  function count() { var n = 0; for (var k in MING) n += Object.keys(MING[k]).length; return n; }
+  return { GONG: GONG, YAO: YAO, MING: MING, YMAP: YMAP, gong: gong, yao: yao, ming: ming, count: count };
+})();
+
+
 /* 行限（推運）二法 —— 據《張果星宗》正文
    【甲・宮限】〈限步之說〉：命宮以卯為首，十二宮各領年數。原文明著者九宮——
      官祿十五、遷移八（成二十有三）、疾厄七（定成三十）、夫妻十一、奴僕四年半、男女四年半、
@@ -2297,10 +2379,29 @@ var AS = (function (XY) {
   };
 
   /* ============ 生辰解析 ============ */
+  var YMIN = 600, YMAX = 2200;
+  /* 由 <input type=date> 之值解析年月日——不經 Date 物件，因其為格里曆而本引擎於一五八二年前用儒略曆 */
+  function parseDate(s, dflt) {
+    var m = /^(-?\d{1,6})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    if (!m) return dflt;
+    var y = +m[1], mo = +m[2], d = +m[3];
+    if (!(y >= YMIN && y <= YMAX) || mo < 1 || mo > 12 || d < 1 || d > 31) return dflt;
+    return { y: y, m: mo, d: d };
+  }
+  function parseTime(s, dflt) {
+    var m = /^(\d{1,2}):(\d{2})/.exec(String(s || ''));
+    if (!m) return dflt;
+    var h = +m[1], i = +m[2];
+    if (h < 0 || h > 23 || i < 0 || i > 59) return dflt;
+    return { hh: h, mi: i };
+  }
+  function todayYMD() { var n = new Date(); return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() }; }
   function readInput() {
+    var bd = parseDate($('bdate').value, { y: 1990, m: 1, d: 1 });
+    var bt = parseTime($('btime').value, { hh: 12, mi: 0 });
     return {
-      y: +$('y').value, m: +$('m').value, d: +$('d').value,
-      hh: +$('hh').value, mi: +$('mi').value,
+      y: bd.y, m: bd.m, d: bd.d,
+      hh: bt.hh, mi: bt.mi,
       lon: parseFloat($('lon').value), lat: parseFloat($('lat').value),
       ts: $('ts').checked
     };
@@ -2437,7 +2538,7 @@ var AS = (function (XY) {
 
   /* ============ 宿曜：日曆 ============ */
   function renderRi() {
-    var y = +$('dy').value, m = +$('dm').value, d = +$('dd').value;
+    var qd0 = parseDate($('qdate').value, todayYMD()); var y = qd0.y, m = qd0.m, d = qd0.d;
     var jdUT = XY.toJD(y, m, d, 12 - 8), jdTT = jdUT + XY.deltaT(y) / 86400;
     var L = XYD.lunarOf(y, m, d);
     if (!L) throw new Error('農曆換算失敗');
@@ -3264,6 +3365,8 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     })());
     ok('得經失經抽驗（木躔角居寅為殿垣俱得・木躔虛居子為失經）', JW.jing('木星', '角', '寅').kind === '殿垣俱得' && !JW.jing('木星', '虛', '子').ok);
     ok('緯克經之所忌合原文（金忌火羅・水忌土計・日忌木氣羅）', JW.JI['金星'].join('') === '火星羅睺' && JW.JI['水星'].join('') === '土星計都' && JW.JI['太陽'].length === 3);
+    ok('命盤層：十二宮白話十二條・十一曜白話十一條・曜宮專名一百三十二', Object.keys(PAN.GONG).length === 12 && Object.keys(PAN.YAO).length === 11 && PAN.count() === 132);
+    ok('專名抽驗（太陽午少微・太白酉天印・計都子天凶）', PAN.ming('太陽', '午') === '少微' && PAN.ming('金星', '酉') === '天印' && PAN.ming('計都', '子') === '天凶');
     ok('靈台星格三十九格（已濾去史墨曰・孔子曰等引語四條）', LT.keys().length === 39 && !LT.get('孔子曰') && !!LT.get('五星連珠') && !!LT.get('水火既濟'));
     ok('通元賦與談星奧論全文入庫', LT.TONG.length > 7000 && LT.TAN.length > 8000);
     ok('流年倒限諸篇六篇入庫', LN.keys().length === 6);
@@ -3404,7 +3507,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
 
   function renderXian() {
     var v = readInput(), T = resolve(v);
-    var qy = +$('dy').value, qm = +$('dm').value, qd = +$('dd').value;
+    var qd1 = parseDate($('qdate').value, todayYMD()); var qy = qd1.y, qm = qd1.m, qd = qd1.d;
     var mode = $('xmode') ? $('xmode').value : 'both';
     var age = XX.ageOf(v.y, qy);
     var h = '<div class="plain"><div class="ph">白話說明 · 行限是什麼</div><div class="pb">'
@@ -3493,6 +3596,99 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '原書另有依大限逐年進度者，其起法載於〈定限度法〉〈年分訣〉〈定小限例〉諸節，而<b>該四節正文佚失</b>，故不能全依。</div></div>';
     }
     $('outXian').innerHTML = h;
+  }
+
+  function renderPan() {
+    var v = readInput(), T = resolve(v);
+    var tbl = XD.table(T.jdTT), g12 = G12.widths(tbl);
+    var sunLam = XY.sunLon(T.jdTT), sunG = null;
+    g12.forEach(function (x) { if (XY.mod(sunLam - x.ra, 360) * (365.25 / 360) < x.w) sunG = x; });
+    if (!sunG) { $('outPan').innerHTML = '<div class="err">無法定太陽所在宮。</div>'; return; }
+    var shi = AM.shiChen(v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0));
+    var mz = AM.anMing(sunG.zhi, shi), mi0 = AM.ZHI.indexOf(mz);
+    var rows = [['太陽', XY.sunLon(T.jdTT)], ['太陰', XY.moonLon(T.jdTT)]];
+    PL.names.forEach(function (n) { rows.push([n, PL.geoLon(n, T.jdTT).lon]); });
+    var jiChu = tbl.find(function (x) { return x.su === '箕'; }).ra;
+    var sy = SY.all(T.jdTT, jiChu);
+    ['羅睺', '計都', '月孛', '紫氣'].forEach(function (n) { rows.push([n, sy[n]['真'] !== null ? sy[n]['真'] : sy[n]['平']]); });
+    // 宮位表
+    var cells = {};
+    ZG.GONG12.forEach(function (gname, k) {
+      var z = AM.ZHI[XY.mod(mi0 - k, 12)];
+      var gg = g12.find(function (x) { return x.zhi === z; });
+      var who = rows.filter(function (r) { return XY.mod(r[1] - gg.ra, 360) * (365.25 / 360) < gg.w; })
+        .map(function (r) { return r[0]; });
+      var gz = AM.GONGZHU[z], wx = { 木: '木', 火: '火', 土: '土', 金: '金', 水: '水' }[gz];
+      cells[z] = { gong: gname, zhi: z, ci: gg.gong, zhu: gz, who: who,
+        sha: SS.shaOf(z).map(function (s) { return s.name; }),
+        stage: wx ? SS.stageOf(wx, z) : null };
+    });
+    // 行限：各宮所主之歲數
+    var acc = 0, ages = {};
+    XX.SEQ.forEach(function (g) { var yy = XX.yearsOf(g); ages[g] = [acc + 1, acc + yy, XX.UNKNOWN.indexOf(g) >= 0]; acc += yy; });
+
+    var h = '<div class="plain"><div class="ph">白話說明 · 這一頁怎麼看</div><div class="pb">'
+      + '這是把「星盤」與「行限」兩頁的資料，攤成一張<b>十二宮位圖</b>——三套資料共用同一根軸：<b>地支</b>。<br><br>'
+      + '每格由上到下是：<b>宮名</b>（這一宮管什麼）／<b>地支・十二次・宮主</b>（這一宮的位置與主星）／'
+      + '<b>本盤</b>（哪些曜落在這裡）／<b>神煞與長生</b>／<b>行限歲數</b>（幾歲到幾歲走這一宮）。<br><br>'
+      + '<b>點任一格</b>，下方就顯示該宮與其中各曜的白話簡述。'
+      + '此頁為速覽，措辭經簡化；原文一字未改，全在「星盤」與「行限」兩頁。</div></div>';
+    h += '<div class="card"><h2>命盤</h2><div class="pangrid">';
+    // 四象排列：巳午未申 / 辰□□酉 / 卯□□戌 / 寅丑子亥
+    var LAYOUT = [['巳', '午', '未', '申'], ['辰', null, null, '酉'], ['卯', null, null, '戌'], ['寅', '丑', '子', '亥']];
+    LAYOUT.forEach(function (row, ri) {
+      row.forEach(function (z, ci) {
+        if (!z) {
+          if (ri === 1 && ci === 1) h += '<div class="pancenter" style="grid-area:2/2/4/4">'
+            + '<div class="pcn">' + esc(v.y) + '-' + esc(('0' + v.m).slice(-2)) + '-' + esc(('0' + v.d).slice(-2))
+            + '　' + esc(('0' + v.hh).slice(-2)) + ':' + esc(('0' + v.mi).slice(-2)) + '</div>'
+            + '<div class="pcs">命宮在 <b>' + esc(mz) + '</b></div>'
+            + '<div class="pcs">太陽在 ' + esc(sunG.zhi) + ' 宮・生時 ' + esc(shi) + '</div>'
+            + '<div class="pct">命宮＝太陽所在宮，自卯時起每時辰逆退一宮</div></div>';
+          return;
+        }
+        var c = cells[z], ag = ages[c.gong];
+        h += '<div class="pancell' + (z === mz ? ' pmain' : '') + '" data-z="' + z + '">'
+          + '<div class="pg">' + esc(c.gong) + (z === mz ? '<span class="pbadge">命</span>' : '') + '</div>'
+          + '<div class="pz">' + esc(z) + '　' + esc(c.ci) + '　主' + esc(c.zhu) + '</div>'
+          + (c.who.length ? '<div class="pw">' + c.who.map(function (w) {
+              return '<span>' + esc(w) + (PAN.ming(w, z) ? '<i>' + esc(PAN.ming(w, z)) + '</i>' : '') + '</span>'; }).join('') + '</div>'
+            : '<div class="pw pnone">（無曜）</div>')
+          + '<div class="ps">' + (c.sha.length ? c.sha.map(function (s) { return '<em>' + esc(s) + '</em>'; }).join('') : '')
+          + (c.stage ? '<b>' + esc(c.stage) + '</b>' : '') + '</div>'
+          + '<div class="pa">' + ag[0] + '–' + ag[1] + ' 歲' + (ag[2] ? '<sup>※</sup>' : '') + '</div>'
+          + '</div>';
+      });
+    });
+    h += '</div><div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
+    h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div></div>';
+    $('outPan').innerHTML = h;
+    // 綁定點取
+    AM.ZHI.forEach(function (z) {
+      var el = document.querySelector('.pancell[data-z="' + z + '"]');
+      if (!el) return;
+      el.addEventListener('click', function () {
+        var c = cells[z], ag = ages[c.gong], gb = PAN.gong(c.gong);
+        var d = '<h3>' + esc(c.gong) + '宮　' + esc(z) + '　' + esc(c.ci) + '</h3>';
+        if (gb) d += '<div class="bai"><b>' + esc(gb[0]) + '</b>　' + esc(gb[1]) + '</div>';
+        d += '<div class="tiny" style="margin:8px 0">宮主為 <b>' + esc(c.zhu) + '</b>'
+          + (c.stage ? '，' + esc(c.zhu) + '於' + esc(z) + '宮為<b>' + esc(c.stage) + '</b>' : '')
+          + (c.sha.length ? '；此宮值 <b>' + esc(c.sha.join('・')) + '</b>' : '')
+          + '；行限 ' + ag[0] + ' 至 ' + ag[1] + ' 歲。</div>';
+        if (c.who.length) {
+          d += '<h4>落在此宮的曜</h4>';
+          c.who.forEach(function (w) {
+            var yb = PAN.yao(w), nm = PAN.ming(w, z);
+            d += '<div class="bai" style="margin-bottom:8px"><b>' + esc(w) + '</b>'
+              + (nm ? '　在此位名「<b>' + esc(nm) + '</b>」' : '') + '<br>' + esc(yb ? yb[1] : '') + '</div>';
+          });
+          d += '<div class="tiny">各曜在此宮之完整歌訣與原文，見「星盤」分頁。</div>';
+        } else {
+          d += '<div class="tiny">本盤無曜落於此宮。原書云「各宮一星」為常，空宮則看其宮主所落之處。</div>';
+        }
+        $('panDetail').innerHTML = d;
+      });
+    });
   }
   function renderIntro() {
     var h = '';
@@ -3736,7 +3932,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   }
 
   /* ============ 分頁與啟動 ============ */
-  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t3', 'p3'], ['t8', 'p8'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
+  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t9', 'p9'], ['t3', 'p3'], ['t8', 'p8'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
   TABS.forEach(function (p) {
     $(p[0]).addEventListener('click', function () {
       TABS.forEach(function (q) { var on = q[0] === p[0]; $(q[0]).setAttribute('aria-selected', on ? 'true' : 'false'); $(q[1]).hidden = !on; });
@@ -3747,12 +3943,13 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     try { renderMing(); } catch (e) { $('outMing').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderQZ(); } catch (e) { $('outQZ').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderRing(); } catch (e) { }
+    try { renderPan(); } catch (e) { $('outPan').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
   }
   $('go').addEventListener('click', function () { runAll(); try { renderRi(); } catch (e) { } try { renderXian(); } catch (e) { } });
 
   (function boot() {
-    var n = new Date();
-    $('dy').value = n.getFullYear(); $('dm').value = n.getMonth() + 1; $('dd').value = n.getDate();
+    var n = new Date(), p2 = function (x) { return (x < 10 ? '0' : '') + x; };
+    $('qdate').value = n.getFullYear() + '-' + p2(n.getMonth() + 1) + '-' + p2(n.getDate());
     try { renderIntro(); } catch (e) { }
     try { renderLookup(); } catch (e) { }
     try { renderWenXY(); } catch (e) { }
