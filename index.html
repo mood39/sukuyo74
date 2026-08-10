@@ -86,6 +86,7 @@ svg{display:block;width:100%;height:auto}
 .pancell .pz{font-size:11px;color:var(--mu);margin:3px 0 5px}
 .pancell .pw{font-size:12.5px;line-height:1.65}
 .pancell .pw span{display:inline-block;color:var(--shi2);margin-right:6px}
+.pancell .pw span.yu4{color:var(--zhu)}
 .pancell .pw i{font-style:normal;color:var(--mu);font-size:10.5px;margin-left:2px}
 .pancell .pw.pnone{color:var(--mu);font-size:11px}
 .pancell .ps{font-size:10.5px;margin-top:4px;line-height:1.6}
@@ -102,6 +103,26 @@ svg{display:block;width:100%;height:auto}
 @media(max-width:600px){.pangrid{gap:3px}.pancell{min-height:92px;padding:5px 6px}
   .pancell .pg{font-size:13px}.pancell .pw{font-size:11.5px}.pancenter{padding:8px}
   .pancenter .pcn{font-size:11px}.pancenter .pcs{font-size:11.5px}}
+
+.mon{margin-top:14px}
+.mont{font-family:var(--serif);font-size:13px;color:var(--jin2);letter-spacing:.14em;margin-bottom:5px}
+.mongrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mongrid .wk{font-size:10px;color:var(--mu);text-align:center;padding:2px 0}
+.dcell{background:var(--gan);border:1px solid rgba(200,164,77,.10);border-radius:2px;
+  min-height:38px;padding:3px 2px;text-align:center;cursor:pointer;position:relative}
+.dcell:hover{border-color:var(--jin)}
+.dcell.dempty{background:none;border:none;cursor:default}
+.dcell b{display:block;font-family:var(--mono);font-size:11.5px;color:var(--juan);font-weight:400}
+.dcell i{display:block;font-style:normal;font-family:var(--serif);font-size:10.5px;color:var(--mu);line-height:1.3}
+.dcell u{position:absolute;top:1px;right:2px;text-decoration:none;font-size:9px;padding:0 3px;border-radius:2px}
+.dcell.kg{background:rgba(127,169,142,.16);border-color:rgba(127,169,142,.4)}
+.dcell.kg u{background:var(--lv);color:#10241A}
+.dcell.kj{background:rgba(200,164,77,.16);border-color:rgba(200,164,77,.45)}
+.dcell.kj u{background:var(--jin);color:#14203A}
+.dcell.kr{background:rgba(192,69,58,.16);border-color:rgba(192,69,58,.42)}
+.dcell.kr u{background:var(--zhu);color:#fff}
+.dcell.dsel{outline:2px solid var(--jin2);outline-offset:-2px}
+@media(max-width:600px){.dcell{min-height:32px}.dcell b{font-size:10.5px}.dcell i{font-size:9px}}
 .formula{font-family:var(--mono);font-size:12.5px;background:var(--gan);border:1px solid var(--line);
   padding:9px 12px;margin:9px 0;border-radius:2px;color:var(--jin2);line-height:1.7;overflow-x:auto}
 .chk{font-family:var(--mono);font-size:11.5px;color:var(--mu);line-height:1.85}
@@ -1506,10 +1527,59 @@ var DZ = (function (XY) {
     ['大殺', '主橫禍', '申酉戌巳午未寅卯辰亥子醜'],
     ['孤辰', '主孤克', '寅寅巳巳巳申申申亥亥亥寅'],
     ['寡宿', '主寡居', '戌戌醜醜醜辰辰辰未未未戌'],
-    ['三刑', '主刑傷', '卯戌巳午辰申午醜寅酉未亥']
+    ['三刑', '主刑傷', '卯戌巳午辰申午醜寅酉未亥'],
+    ['六害', '主克害', '未午巳辰卯寅醜子亥戌酉申'],
+    ['劫殺', '主劫破', '巳寅亥申巳寅亥申巳寅亥申'],
+    ['亡神', '主危亡', '亥申巳寅亥申巳寅亥申巳寅']
   ];
   var YAOCH = { 日: '太陽', 月: '太陰', 木: '木星', 火: '火星', 土: '土星', 金: '金星', 水: '水星',
     氣: '紫氣', 孛: '月孛', 羅: '羅睺', 計: '計都' };
+  /* 依原書體例補位者 —— 「同前斷」謂與前一星同位，「同前」謂斷語同前而自有其位。
+     此類條目原書省寫，其位可由緊接關係定之，本引擎逐條標明所本。 */
+  var TONGWEI = [
+    ['劍鋒', '怕迭刃', '太歲', '緊接太歲之後而無位，依體例同太歲'],
+    ['伏屍', '怕逢凶', '太歲', '同上'],
+    ['地雌', '怕並殺', '喪門', '緊接喪門之後而無位'],
+    ['地喪', '忌臨妻', '喪門', '同上'],
+    ['勾神', '同貫索斷', '貫索', '原註「同前斷」，前條為貫索'],
+    ['官符', '同五鬼斷', '五鬼', '原註「同前斷」，前條為五鬼'],
+    ['飛符', '同五鬼斷', '五鬼', '同上'],
+    ['年符', '同五鬼斷', '五鬼', '同上'],
+    ['死符', '身命忌', '月德', '緊接月德之後而無位'],
+    ['小耗', '田財忌', '月德', '同上'],
+    ['大耗', '同歲破斷', '歲破', '原註「同前」，前條為歲破'],
+    ['闌幹', '命限忌', '歲破', '緊接歲破之後而無位'],
+    ['天厄', '同暴敗斷', '暴敗', '原註「同前」，前條為暴敗'],
+    ['天雄', '同白虎斷', '白虎', '原註「同前」，前條為白虎'],
+    ['捲舌', '命限忌', '天德', '緊接天德之後而無位'],
+    ['絞殺', '同捲舌斷', '天德', '原註「同前」'],
+    ['吊客', '主弔孝', '天狗', '緊接天狗之後而無位'],
+    ['驀越', '主疾病', '病符', '原文作「病符、驀越」並列同位'],
+    ['破碎', '同的殺斷', '的殺', '原註「同上」，前條為的殺'],
+    ['桃花', '主淫泆', '咸池', '緊接咸池之後而無位'],
+    ['飛廉', '主非災', '大殺', '緊接大殺之後而無位'],
+    ['唐符', '主重權', '飛刃', '原文「唐符即飛刃也，並凶則以飛刃斷，會吉則以唐符論」']
+  ];
+  /* 另有原書明載而前此未錄者 */
+  var BUZHI = [
+    ['六害', '主克害', '未午巳辰卯寅醜子亥戌酉申'],
+    ['劫殺', '主劫破', '巳寅亥申巳寅亥申巳寅亥申'],
+    ['亡神', '主危亡', '亥申巳寅亥申巳寅亥申巳寅']
+  ];
+  function tongwei(zhi) {
+    var out = [];
+    TONGWEI.forEach(function (r) {
+      var src = r[2] === '飛刃' ? null : BYZHI.filter(function (x) { return x[0] === r[2]; })[0];
+      var v = null;
+      if (src) v = sp(src[2])[ZHI.indexOf(zhi)];
+      if (v && ZHI.indexOf(v) >= 0) out.push({ name: r[0], zhu: r[1], zhi: v, from: r[2], note: r[3] });
+    });
+    return out;
+  }
+  function buzhi(zhi) {
+    var i = ZHI.indexOf(zhi);
+    return BUZHI.map(function (r) { return { name: r[0], zhu: r[1], zhi: sp(r[2])[i] }; });
+  }
   function byGan(gan) {
     var i = GAN.indexOf(gan); if (i < 0) return [];
     return BYGAN.map(function (r) { return { name: r[0], zhu: r[1], zhi: sp(r[2])[i] }; });
@@ -1524,7 +1594,7 @@ var DZ = (function (XY) {
   function ganOfYear(y) { return GAN[XY.mod(y - 4, 10)]; }
   function zhiOfYear(y) { return ZHI[XY.mod(y - 4, 12)]; }
   function count() { return BYGAN.length + BYZHI.length; }
-  return { GAN: GAN, ZHI: ZHI, BYGAN: BYGAN, BYZHI: BYZHI, byGan: byGan, byZhi: byZhi,
+  return { GAN: GAN, ZHI: ZHI, BYGAN: BYGAN, BYZHI: BYZHI, TONGWEI: TONGWEI, BUZHI: BUZHI, byGan: byGan, byZhi: byZhi, tongwei: tongwei, buzhi: buzhi,
     ganOfYear: ganOfYear, zhiOfYear: zhiOfYear, count: count };
 })(XY);
 
@@ -1630,6 +1700,35 @@ var SY3 = (function (XY) {
   return { GAN: GAN, ZHI: ZHI, HUALU: HUALU, GANWX: GANWX, ZHIWX: ZHIWX, LUGAN: LUGAN, MA: MA, HE: HE,
     WUHU: WUHU, dunGan: dunGan, guaGan: guaGan, all: all };
 })(XY);
+
+
+/* 三垣 —— 紫微垣・太微垣・天市垣
+   三垣與二十八宿共構「三垣二十八宿」體系：二十八宿沿黃赤道分佈為「宿」，
+   三垣則為拱極與近極之天區，不參與宿度之分割，故本引擎列為獨立一層，不入宿度計算。 */
+'use strict';
+var SY4 = (function () {
+  var YUAN = [
+    { name: '紫微垣', wei: '北天極周圍之拱極天區，居三垣之中',
+      xiang: '天帝之居。垣牆十五星分左右樞，內有北極五星、勾陳、四輔、天乙、太乙、御女、天柱、女史、尚書、柱史、天床、五帝內座等',
+      zhu: '主帝室、宮禁、內廷之事',
+      note: '恆隱不沒，終年可見，故古人以為天之中樞。北極五星之「紐星」即今之勾陳一（小熊座α），今為北極星，然歲差之故，古之北極星非此。' },
+    { name: '太微垣', wei: '紫微垣之東南，室女、獅子二座之間',
+      xiang: '天庭朝堂。垣牆十星分左右執法，內有五帝座、太子、從官、幸臣、內屏、三台、謁者、常陳、郎位、虎賁等',
+      zhu: '主朝政、官爵、刑賞之事',
+      note: '五帝座一即今獅子座β。太微垣近黃道，日月五星常經其中，故古人以七政入太微為朝見天庭之象。' },
+    { name: '天市垣', wei: '紫微垣之東南，房心尾箕之北，蛇夫、武仙一帶',
+      xiang: '天上市集。垣牆二十二星分列東西，以各國名之（燕・東海・徐・吳越・齊・中山・九河・趙・魏・韓・楚・梁・巴・蜀・秦・周・鄭・晉・河間・河中・宋等），內有帝座、候、宦者、斗、斛、市樓、列肆、車肆、屠肆等',
+      zhu: '主市易、聚眾、貨殖之事',
+      note: '垣牆諸星以戰國列國為名，為星官體系中僅見之地理配當，反映其定名年代。' }
+  ];
+  /* 二十八宿與三垣之關係（原則） */
+  var GUANXI = '二十八宿沿黃赤道環天一周，分割周天度數，故有宿度；'
+    + '三垣居近極與中天之區，不分割周天，故無宿度可言。'
+    + '七政四餘之推步以宿度為據，三垣不與焉——本引擎故列為獨立一層，'
+    + '示其形勢與所主，不參與任何位置計算。';
+  function count() { return YUAN.length; }
+  return { YUAN: YUAN, GUANXI: GUANXI, count: count };
+})();
 
 
 /* 倒限完整判準 —— 據《張果星宗》卷十六〈限度宜忌〉〈餘奴傷主論〉〈划度元奧經〉〈節要元文〉
@@ -1867,6 +1966,91 @@ var LT = (function () {
   function keys() { return Object.keys(GE); }
   return { GE: GE, TONG: TONG, TAN: TAN, get: get, keys: keys };
 })();
+
+/* 靈台星格之可判者 —— 據《張果星宗·靈台星格》
+   39 格中條件明確可由本盤實判者，逐條註明原文所本。餘者語意繫於全盤之勢，照錄不判。 */
+'use strict';
+var LG = (function (XY) {
+  var CN = 365.25 / 360;
+  /* 判別式所用之基本關係 */
+  function sameGong(a, b) { return a && b && a.zhi === b.zhi; }
+  function opposite(a, b) { var Z = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    return a && b && Z[XY.mod(Z.indexOf(a.zhi) + 6, 12)] === b.zhi; }
+  function trine(a, b) { var Z = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    if (!a || !b) return false;
+    var d = XY.mod(Z.indexOf(b.zhi) - Z.indexOf(a.zhi), 12);
+    return d === 4 || d === 8; }
+  /* 可判之格：[格名, 判別函式, 原文所本] */
+  var RULES = [
+    ['日月合璧', function (P) { var a = P.曜['太陽'], b = P.曜['太陰'];
+        return (sameGong(a, b) || opposite(a, b) || trine(a, b)) ? (sameGong(a, b) ? '同宮' : opposite(a, b) ? '對照' : '三合照') : null; },
+      '太陽與太陰同宮，或對照，或三合照是也。然須廟旺方為貴。'],
+    ['水火既濟', function (P) { var w = P.曜['水星'], f = P.曜['火星'];
+        if (!sameGong(w, f)) return null;
+        return (w.lon <= f.lon) ? '水先火後，同居一位' : null; },
+      '水先入宮，火後入宮，同居一位以照命者是也。'],
+    ['火水未濟', function (P) { var w = P.曜['水星'], f = P.曜['火星'];
+        if (!sameGong(w, f)) return null;
+        return (f.lon < w.lon) ? '火先水後，同居一位' : null; },
+      '與水火既濟相反，火先水後者是也。'],
+    ['鼇頭獨步', function (P) { var m = P.曜['木星'];
+        if (!m || (m.zhi !== '寅' && m.zhi !== '卯')) return null;
+        if (P.命宮 !== '寅' && P.命宮 !== '卯') return null;
+        return (P.季 === '春') ? '三春生人，寅卯安命而見木星' : null; },
+      '三春生人在寅卯二宮安命，而寅卯上見木星也，此得時得位得用。'],
+    ['五星連珠', function (P) { var Z = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+        var pos = ['木星','火星','土星','金星','水星'].map(function (n) { return P.曜[n] ? Z.indexOf(P.曜[n].zhi) : -1; });
+        if (pos.indexOf(-1) >= 0) return null;
+        var s = pos.slice().sort(function (a, b) { return a - b; });
+        for (var off = 0; off < 12; off++) {
+          var r = pos.map(function (p) { return XY.mod(p - off, 12); }).sort(function (a, b) { return a - b; });
+          var ok = true;
+          for (var i = 1; i < r.length; i++) if (r[i] - r[i - 1] > 1) { ok = false; break; }
+          if (ok && r[r.length - 1] - r[0] <= 5) return '五星順布相續於 ' + r.length + ' 宮之內';
+        }
+        return null; },
+      '五星不必同宮，只得順布，五位相續而不斷者，亦是虛拱一位而命居其中者亦是。'],
+    ['眾星拱北', function (P) { var Z = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+        var mi = Z.indexOf(P.命宮), l = 0, r = 0;
+        Object.keys(P.曜).forEach(function (n) { var z = Z.indexOf(P.曜[n].zhi);
+          if (XY.mod(z - mi, 12) === 1) r++; if (XY.mod(mi - z, 12) === 1) l++; });
+        return (l && r) ? '命宮左右各有曜夾之（左 ' + l + '・右 ' + r + '）' : null; },
+      '眾星環拱命垣者是也。'],
+    ['日中見鬥', function (P) { var s = P.曜['太陽'];
+        return (s && s.su === '斗') ? '太陽躔斗宿' : null; },
+      '太陽躔斗宿者是也。'],
+    ['木上水井', function (P) { var m = P.曜['木星'];
+        return (m && m.su === '井') ? '木星躔井宿' : null; },
+      '木星躔井宿者是也。'],
+    ['孛于東井', function (P) { var b = P.曜['月孛'];
+        return (b && b.su === '井') ? '月孛躔井宿' : null; },
+      '月孛躔東井者是也。'],
+    ['首攜龍角', function (P) { var r = P.曜['羅睺'];
+        return (r && r.su === '角') ? '羅睺躔角宿' : null; },
+      '羅睺為天首，躔角宿者是也。'],
+    ['計居龍尾', function (P) { var j = P.曜['計都'];
+        return (j && j.su === '尾') ? '計都躔尾宿' : null; },
+      '計都為天尾，躔尾宿者是也。'],
+    ['金居幹位', function (P) { var g = P.曜['金星'];
+        return (g && g.zhi === '亥') ? '金星居亥（乾位）' : null; },
+      '金星居乾位者是也。'],
+    ['月扶斗柄', function (P) { var m = P.曜['太陰'];
+        return (m && m.su === '斗') ? '太陰躔斗宿' : null; },
+      '太陰扶於斗柄者是也。']
+  ];
+  function judge(P) {
+    var out = [];
+    RULES.forEach(function (r) {
+      var v = null;
+      try { v = r[1](P); } catch (e) { v = null; }
+      if (v) out.push({ name: r[0], how: v, src: r[2] });
+    });
+    return out;
+  }
+  function count() { return RULES.length; }
+  return { RULES: RULES, judge: judge, count: count };
+})(XY);
+
 
 /* 羅經二十八宿度數吉凶 —— 新安汪氏傳本（堪輿羅經系統）
    「三百六十五度，上合天運之流行，下通地理之山向。羅經取生旺吉秀坐穴，配合百二分金……」
@@ -2622,93 +2806,119 @@ var AS = (function (XY) {
 
   /* ============ 宿曜：日曆 ============ */
   function renderRi() {
-    var qd0 = parseDate($('qdate').value, todayYMD()); var y = qd0.y, m = qd0.m, d = qd0.d;
-    var jdUT = XY.toJD(y, m, d, 12 - 8), jdTT = jdUT + XY.deltaT(y) / 86400;
-    var L = XYD.lunarOf(y, m, d);
-    if (!L) throw new Error('農曆換算失敗');
-    var t = fourTracks(jdTT, L.month, L.day);
-    var dn = XYD.dayNo(jdUT), wi = XY.mod(dn + 1, 7), yao = XYD.YAO[wi];
-    var gd = L.day <= 15 ? { fen: '白', n: L.day } : { fen: '黑', n: L.day - 15 };
-    var h = P.ri;
-    h += '<div class="card"><h2>' + y + ' 年 ' + m + ' 月 ' + d + ' 日</h2>';
-    h += '<div class="tiny" style="margin-bottom:12px">農曆 ' + CN[L.month] + (L.leap ? '（閏）' : '') + '月' + CND[L.day] + '日　·　'
-      + '<span class="tag j">' + esc(yao.n) + '</span>（即今之星期' + ['日', '一', '二', '三', '四', '五', '六'][wi] + '）</div>';
-    h += trackTable(t);
-    var trio = null;
-    if (XYD.GANLU[wi] === t.jia.name) trio = ['甘露日', '大吉，宜受戒、學法、出家、營建', 'g'];
-    else if (XYD.JINGANG[wi] === t.jia.name) trio = ['金剛峯日', '宜降伏、護摩等猛利之事', 'j'];
-    else if (XYD.LUOCHA[wi] === t.jia.name) trio = ['羅剎日', '諸事不宜', 'r'];
-    if (trio) h += '<div class="note" style="margin-top:10px"><span class="tag ' + trio[2] + '">' + trio[0] + '</span>' + trio[1] + '<div class="tiny">曜與宿相合而成，一年只有少數幾天。</div></div>';
-    h += '</div>';
+    var y = +($('qdate').value || '').slice(0, 4) || todayYMD().y;
+    var qd = parseDate($('qdate').value, todayYMD());
+    var h = '<div class="plain"><div class="ph">白話說明 · 這一頁怎麼用</div><div class="pb">'
+      + '這是<b>擇日</b>用的。下方是整年的日曆，三種特殊日子已標在格子上——'
+      + '<span class="tag g">甘</span>甘露日（大吉，宜受戒學法出家營建）'
+      + '<span class="tag j">金</span>金剛峯日（宜降伏、護摩等猛利之事）'
+      + '<span class="tag r">羅</span>羅剎日（諸事不宜）。<br><br>'
+      + '這三種由七曜與值日宿相合而成，一年只有十來天。<b>點任一日</b>，下方即顯示那天的宜忌。</div></div>';
 
-    var rn = XYD.RIMING[(gd.n - 1) % 15];
-    h += '<div class="card"><h2>白黑月　' + gd.fen + '月' + CND[gd.n] + '　·　' + esc(rn[0]) + '日</h2>';
-    h += '<div class="bai">' + esc(BY.RI[(gd.n - 1) % 15]) + '</div>';
-    h += '<div class="tiny" style="margin-top:8px">白月是月亮由缺轉圓的十五天，黑月是由圓轉缺的十五天。這一天由「' + esc(rn[2]) + '」當值（梵名' + esc(rn[1]) + '）。</div>';
-    h += '<details class="orig"><summary>看經書原文</summary><div class="jing">' + esc(rn[3]) + '</div></details>';
-    var cls = XYD.JIRI.indexOf(L.day) >= 0 ? ['吉日', 'g'] : (XYD.PINGRI.indexOf(L.day) >= 0 ? ['平日', ''] : ['', 'r']);
-    h += '<div class="note" style="margin-top:10px">';
-    if (cls[0]) h += '<span class="tag ' + cls[1] + '">' + cls[0] + '</span>';
-    if (XYD.XIONGSHI[L.day]) h += '<span class="tag r">' + XYD.XIONGSHI[L.day] + '為凶時</span>' + (XYD.XIONGSHI[L.day] === '晝' ? '過中午即轉吉' : '過半夜即轉吉');
-    h += '</div></div>';
-
-    // 全年三組日掃描
-    h += '<div class="card"><h2>' + y + ' 年的甘露日・金剛峯日・羅剎日</h2>'
-      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
-      + '這三種日子由<b>七曜與值日宿相合</b>而成——某一曜當值那天，恰好輪到它專屬的那一宿，就成立。'
-      + '因為要兩個週期同時對上（七日一循環的曜、二十七日一循環的宿），一年只有少數幾天。<br><br>'
-      + '<span class="tag g">甘露日</span>大吉，宜受戒、學法、出家、營建。'
-      + '<span class="tag j">金剛峯日</span>宜降伏、護摩等猛利之事。'
-      + '<span class="tag r">羅剎日</span>諸事不宜。</div></div>';
-    (function () {
-      var res = { 甘露: [], 金剛峯: [], 羅剎: [] };
-      for (var mm = 1; mm <= 12; mm++) {
-        for (var dd = 1; dd <= 31; dd++) {
-          var LL;
-          try { LL = XYD.lunarOf(y, mm, dd); } catch (e) { continue; }
-          if (!LL) continue;
-          var chk = XY.fromJD(XY.toJD(y, mm, dd, 12));
-          if (chk.m !== mm || chk.d !== dd) continue;
-          var su = XYD.guFaJia(LL.month, LL.day).name;
-          var dn2 = XYD.dayNo(XY.toJD(y, mm, dd, 4)), w2 = XY.mod(dn2 + 1, 7);
-          if (XYD.GANLU[w2] === su) res.甘露.push([mm, dd, XYD.YAO[w2].n, su]);
-          else if (XYD.JINGANG[w2] === su) res.金剛峯.push([mm, dd, XYD.YAO[w2].n, su]);
-          else if (XYD.LUOCHA[w2] === su) res.羅剎.push([mm, dd, XYD.YAO[w2].n, su]);
-        }
+    // 全年掃描
+    var mark = {}, stat = { 甘露: 0, 金剛峯: 0, 羅剎: 0 };
+    for (var mm = 1; mm <= 12; mm++) {
+      for (var dd = 1; dd <= 31; dd++) {
+        var chk = XY.fromJD(XY.toJD(y, mm, dd, 12));
+        if (chk.m !== mm || chk.d !== dd) continue;
+        var LL; try { LL = XYD.lunarOf(y, mm, dd); } catch (e) { continue; }
+        if (!LL) continue;
+        var su = XYD.guFaJia(LL.month, LL.day).name;
+        var dn2 = XYD.dayNo(XY.toJD(y, mm, dd, 4)), w2 = XY.mod(dn2 + 1, 7);
+        var kind = null;
+        if (XYD.GANLU[w2] === su) kind = '甘露';
+        else if (XYD.JINGANG[w2] === su) kind = '金剛峯';
+        else if (XYD.LUOCHA[w2] === su) kind = '羅剎';
+        mark[mm + '/' + dd] = { su: su, yao: XYD.YAO[w2].n, w: w2, kind: kind, L: LL };
+        if (kind) stat[kind]++;
       }
-      [['甘露', 'g'], ['金剛峯', 'j'], ['羅剎', 'r']].forEach(function (p) {
-        var a = res[p[0]];
-        h += '<h4><span class="tag ' + p[1] + '">' + p[0] + '日</span>' + y + ' 年共 ' + a.length + ' 天</h4>';
-        h += a.length ? '<div class="note">' + a.map(function (x) {
-          return x[0] + '/' + x[1] + '（' + x[2] + '・' + x[3] + '宿）';
-        }).join('　') + '</div>' : '<div class="tiny">本年無。</div>';
-      });
-      h += '<div class="tiny" style="margin-top:8px">依望宿法主軌計。三組互斥，同日只歸一組。</div>';
-    })();
-    h += '</div>';
-
-    if (MING) {
-      var rel = XYD.relOf(MING.su, t.jia.name);
-      var good = '榮安成友親'.indexOf(rel.lab) >= 0, bad = '衰危壞'.indexOf(rel.lab) >= 0;
-      var lb = BY.LAB[rel.lab] || ['', ''];
-      h += '<div class="card"><h2>今天對你</h2>';
-      h += '<div class="chain">'
-        + '<div class="cstep"><div class="ck">你的本命宿</div><div class="cv">' + esc(MING.su) + '</div></div>'
-        + '<div class="carr">→ 順數 ' + rel.pos + ' 位 →</div>'
-        + '<div class="cstep"><div class="ck">今日值日宿</div><div class="cv">' + esc(t.jia.name) + '</div></div>'
-        + '</div>';
-      h += '<div class="tiny" style="margin:8px 0 12px">三九盤上第 ' + rel.pos + ' 格的名稱是——</div>';
-      h += '<div class="big">' + esc(rel.lab) + '<span class="bigsub">宿</span>　<span class="tag ' + (good ? 'g' : bad ? 'r' : '') + '">' + esc(lb[0]) + '</span></div>';
-      h += '<div class="bai" style="margin-top:8px">' + esc(lb[1]) + '</div>';
-      if (MING.su === t.jia.name) h += '<div class="note" style="margin-top:8px"><span class="tag r">同宿</span>今天正好輪到你的本命宿當值。這反而是經書說「不宜舉動百事」的日子——本命宿值日宜靜不宜動。</div>';
-      h += '<div class="tiny" style="margin-top:10px">標籤序列是固定的：命 榮 衰 安 危 成 壞 友 親｜業 榮 衰 安 危 成 壞 友 親｜胎 榮 衰 安 危 成 壞 友 親。以本命宿為第一格順數即得。依望宿法主軌計。</div></div>';
-    } else {
-      h += '<div class="card"><div class="tiny">先到「本命」分頁按一次「排盤」，這裡就會顯示今天對你個人的吉凶。</div></div>';
     }
-    h += '<div class="card"><h2>今日值日宿「' + esc(t.jia.name) + '」</h2>'
-      + '<div class="tiny" style="margin-bottom:10px">注意：同一個宿，當「值日宿」和當「本命宿」讀的是經書裡<b>兩段不同的文字</b>——前者講這一天大家的宜忌，後者講生在這宿的人的性格。</div>'
-      + suText(t.jia.name) + '</div>';
+    h += '<div class="card"><h2>' + y + ' 年曆</h2>'
+      + '<div class="tiny" style="margin-bottom:8px">本年　<span class="tag g">甘露 ' + stat['甘露'] + ' 天</span>'
+      + '<span class="tag j">金剛峯 ' + stat['金剛峯'] + ' 天</span><span class="tag r">羅剎 ' + stat['羅剎'] + ' 天</span></div>';
+    var WK = ['日', '一', '二', '三', '四', '五', '六'];
+    for (var m2 = 1; m2 <= 12; m2++) {
+      h += '<div class="mon"><div class="mont">' + m2 + ' 月</div><div class="mongrid">';
+      WK.forEach(function (w) { h += '<div class="wk">' + w + '</div>'; });
+      var first = XY.mod(XYD.dayNo(XY.toJD(y, m2, 1, 4)) + 1, 7);
+      for (var b = 0; b < first; b++) h += '<div class="dcell dempty"></div>';
+      for (var d2 = 1; d2 <= 31; d2++) {
+        var c2 = XY.fromJD(XY.toJD(y, m2, d2, 12));
+        if (c2.m !== m2 || c2.d !== d2) break;
+        var mk2 = mark[m2 + '/' + d2];
+        var kc = mk2 && mk2.kind ? (mk2.kind === '甘露' ? 'kg' : mk2.kind === '金剛峯' ? 'kj' : 'kr') : '';
+        var sel = (m2 === qd.m && d2 === qd.d) ? ' dsel' : '';
+        h += '<div class="dcell ' + kc + sel + '" data-md="' + m2 + '-' + d2 + '">'
+          + '<b>' + d2 + '</b>' + (mk2 ? '<i>' + esc(mk2.su) + '</i>' : '')
+          + (mk2 && mk2.kind ? '<u>' + esc(mk2.kind.charAt(0)) + '</u>' : '') + '</div>';
+      }
+      h += '</div></div>';
+    }
+    h += '</div><div id="dayOut"></div>';
     $('outRi').innerHTML = h;
+
+    function showDay(mm, dd) {
+      var L = XYD.lunarOf(y, mm, dd); if (!L) return;
+      var jdUT = XY.toJD(y, mm, dd, 12 - 8), jdTT = jdUT + XY.deltaT(y) / 86400;
+      var t = fourTracks(jdTT, L.month, L.day);
+      var dn = XYD.dayNo(jdUT), wi = XY.mod(dn + 1, 7), yao = XYD.YAO[wi];
+      var gd = L.day <= 15 ? { fen: '白', n: L.day } : { fen: '黑', n: L.day - 15 };
+      var rn = XYD.RIMING[(gd.n - 1) % 15];
+      var o = '<div class="card"><h2>' + y + ' 年 ' + mm + ' 月 ' + dd + ' 日</h2>';
+      o += '<div class="tiny" style="margin-bottom:12px">農曆 ' + CN[L.month] + (L.leap ? '（閏）' : '') + '月' + CND[L.day]
+        + '　·　<span class="tag j">' + esc(yao.n) + '</span>星期' + ['日', '一', '二', '三', '四', '五', '六'][wi]
+        + '　·　值日宿 <b>' + esc(t.jia.name) + '</b></div>';
+      var trio = null;
+      if (XYD.GANLU[wi] === t.jia.name) trio = ['甘露日', '大吉，宜受戒、學法、出家、營建', 'g'];
+      else if (XYD.JINGANG[wi] === t.jia.name) trio = ['金剛峯日', '宜降伏、護摩等猛利之事', 'j'];
+      else if (XYD.LUOCHA[wi] === t.jia.name) trio = ['羅剎日', '諸事不宜', 'r'];
+      if (trio) o += '<div class="big" style="font-size:26px"><span class="tag ' + trio[2] + '" style="font-size:13px">'
+        + trio[0] + '</span></div><div class="bai" style="margin-bottom:12px">' + trio[1] + '</div>';
+      // 白黑月
+      o += '<h4>白黑月　' + gd.fen + '月' + CND[gd.n] + '　·　' + esc(rn[0]) + '日</h4>';
+      o += '<div class="bai">' + esc(BY.RI[(gd.n - 1) % 15]) + '</div>';
+      o += '<div class="tiny" style="margin-top:6px">白月是月亮由缺轉圓的十五天，黑月是由圓轉缺的十五天。這一天由「'
+        + esc(rn[2]) + '」當值（梵名' + esc(rn[1]) + '）。</div>';
+      var cls = XYD.JIRI.indexOf(L.day) >= 0 ? ['吉日', 'g'] : (XYD.PINGRI.indexOf(L.day) >= 0 ? ['平日', ''] : ['', 'r']);
+      o += '<div class="note" style="margin-top:8px">';
+      if (cls[0]) o += '<span class="tag ' + cls[1] + '">' + cls[0] + '</span>';
+      if (XYD.XIONGSHI[L.day]) o += '<span class="tag r">' + XYD.XIONGSHI[L.day] + '為凶時</span>'
+        + (XYD.XIONGSHI[L.day] === '晝' ? '過中午即轉吉' : '過半夜即轉吉');
+      o += '</div>';
+      // 對你
+      if (MING) {
+        var rel = XYD.relOf(MING.su, t.jia.name), lb = BY.LAB[rel.lab] || ['', ''];
+        var good = '榮安成友親'.indexOf(rel.lab) >= 0, bad = '衰危壞'.indexOf(rel.lab) >= 0;
+        o += '<h4>今天對你</h4>'
+          + '<div class="big" style="font-size:24px">' + esc(rel.lab) + '<span class="bigsub">宿</span>　'
+          + '<span class="tag ' + (good ? 'g' : bad ? 'r' : '') + '" style="font-size:12px">' + esc(lb[0]) + '</span></div>'
+          + '<div class="bai">' + esc(lb[1]) + '</div>'
+          + (MING.su === t.jia.name ? '<div class="note" style="margin-top:6px"><span class="tag r">同宿</span>'
+            + '今天輪到你的本命宿當值，經書說「不宜舉動百事」，宜靜不宜動。</div>' : '');
+      }
+      // 值日宿之宜忌
+      var b2 = BY.SU[t.jia.name] || ['', ''];
+      o += '<h4>值日宿「' + esc(t.jia.name) + '」這一天宜做什麼</h4><div class="bai">' + esc(b2[0]) + '</div>';
+      // 收合：推算過程與原文
+      o += '<details class="orig" style="margin-top:14px"><summary>推算過程與經書原文</summary>';
+      o += trackTable(t);
+      if (MING) o += '<div class="tiny" style="margin-top:8px">本命宿 <b>' + esc(MING.su) + '</b>　今日值日宿 <b>'
+        + esc(t.jia.name) + '</b>　順數第 ' + XYD.relOf(MING.su, t.jia.name).pos + ' 位。'
+        + '標籤序列：命 榮 衰 安 危 成 壞 友 親｜業 榮 衰 安 危 成 壞 友 親｜胎 榮 衰 安 危 成 壞 友 親。</div>';
+      o += '<h4>白黑月原文</h4><div class="jing">' + esc(rn[3]) + '</div>';
+      o += '<h4>值日宿原文（僅直日一段）</h4>' + suText(t.jia.name, 'zhi');
+      o += '</details></div>';
+      $('dayOut').innerHTML = o;
+    }
+    document.querySelectorAll && Array.prototype.forEach.call(document.querySelectorAll('.dcell[data-md]'), function (el) {
+      el.addEventListener('click', function () {
+        var p = el.getAttribute('data-md').split('-');
+        Array.prototype.forEach.call(document.querySelectorAll('.dcell'), function (x) { x.className = x.className.replace(' dsel', ''); });
+        el.className += ' dsel';
+        showDay(+p[0], +p[1]);
+      });
+    });
+    try { showDay(qd.m, qd.d); } catch (e) { }
   }
 
   /* ============ 七政四餘 ============ */
@@ -2977,9 +3187,16 @@ var AS = (function (XY) {
           + '<td class="' + (x.zhi ? 'su' : 'qi') + '">' + esc(x.zhi || x.yao || x.raw) + '</td>'
           + '<td class="tiny">' + (x.zhi ? esc(z2g[x.zhi] || '—') + '宮' : '（此條所配為曜非宮）') + '</td></tr>';
       });
-      h += '</table><div class="tiny" style="margin-top:8px">共 ' + DZ.count() + ' 種。年干支以西曆年推，未計立春前後之別。'
-        + '原書另有劍鋒・伏屍・地雌・地喪・勾神・官符・飛符・年符・死符・小耗・大耗・闌幹・天厄・捲舌・絞殺・吊客・驀越・破碎・桃花・飛廉・六害等，'
-        + '皆註「同前斷」而未別出其位，照錄不補。</div></div>';
+      h += '</table><h4>依原書體例補位者</h4>'
+        + '<div class="tiny" style="margin-bottom:6px">原書於此類但註「同前斷」「同前」「同上」而省其十二位——'
+        + '<b>「同前斷」謂斷語同前，「同前」謂位同前一星</b>。其位可由緊接關係定之，本引擎逐條標明所本，'
+        + '與原書直載者分列，俾知何為明文、何為依例推。</div><table><tr><th>神煞</th><th>主</th><th>落宮</th><th>所本</th></tr>';
+      DZ.tongwei(zhi2).forEach(function (x) {
+        h += '<tr><td class="su">' + esc(x.name) + '</td><td class="tiny">' + esc(x.zhu) + '</td>'
+          + '<td class="su">' + esc(x.zhi) + '</td><td class="tiny">' + esc(x.note) + '</td></tr>';
+      });
+      h += '</table><div class="tiny" style="margin-top:8px">共 ' + (DZ.count() + DZ.TONGWEI.length) + ' 種（原書直載 ' + DZ.count() + '、依例補位 ' + DZ.TONGWEI.length + '）。年干支以西曆年推，未計立春前後之別。'
+  '</div></div>';
     }
     // ── 卦氣・鬥杓・唐符 ──
     if (sunG) {
@@ -3449,6 +3666,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     })());
     ok('得經失經抽驗（木躔角居寅為殿垣俱得・木躔虛居子為失經）', JW.jing('木星', '角', '寅').kind === '殿垣俱得' && !JW.jing('木星', '虛', '子').ok);
     ok('緯克經之所忌合原文（金忌火羅・水忌土計・日忌木氣羅）', JW.JI['金星'].join('') === '火星羅睺' && JW.JI['水星'].join('') === '土星計都' && JW.JI['太陽'].length === 3);
+    ok('三垣三區（紫微・太微・天市），列而不參與推步', SY4.count() === 3 && SY4.YUAN[0].name === '紫微垣' && SY4.GUANXI.indexOf('不與焉') >= 0);
     ok('長生十二階與神煞四類皆有白話', Object.keys(PAN.STAGE).length === 12 && Object.keys(PAN.SHA).length === 4);
     ok('命盤層：十二宮白話十二條・十一曜白話十一條・曜宮專名一百三十二', Object.keys(PAN.GONG).length === 12 && Object.keys(PAN.YAO).length === 11 && PAN.count() === 132);
     ok('專名抽驗（太陽午少微・太白酉天印・計都子天凶）', PAN.ming('太陽', '午') === '少微' && PAN.ming('金星', '酉') === '天印' && PAN.ming('計都', '子') === '天凶');
@@ -3495,10 +3713,19 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     ok('唐符即飛刃、同體異名不另立座標', GQI.TANGFU.same === '飛刃');
     ok('入廟乘旺樂宮喜宮殿垣五表（四圖原缺，五歌存其數）', MWG.count() === 46);
     ok('五表抽驗（土丑入廟・木亥入廟乘旺樂宮・太陰酉乘旺殿垣）', MWG.check('土星', '丑').indexOf('入廟') >= 0 && MWG.check('木星', '亥').length === 3 && MWG.check('太陰', '酉').length === 2);
-    ok('神煞起例三十三種（年干八・年支二十五）', DZ.count() === 33 && DZ.BYGAN.length === 8 && DZ.BYZHI.length === 25);
+    ok('靈台星格可判者十三格（全三十九格中）', LG.count() === 13);
+    ok('靈台星格判別式抽驗（日月合璧・水火既濟・鼇頭獨步）', (function () {
+      var P = { 命宮: '寅', 季: '春', 曜: { 太陽: { zhi: '寅', su: '尾', lon: 250 }, 太陰: { zhi: '申', su: '斗', lon: 70 },
+        木星: { zhi: '卯', su: '井', lon: 100 }, 火星: { zhi: '辰', su: '角', lon: 200 }, 水星: { zhi: '辰', su: '角', lon: 199 } } };
+      var r = LG.judge(P).map(function (x) { return x.name; });
+      return r.indexOf('日月合璧') >= 0 && r.indexOf('水火既濟') >= 0 && r.indexOf('鼇頭獨步') >= 0;
+    })());
+    ok('神煞依原書體例補位二十二種（同前斷＝斷語同前・同前＝位同前星）', DZ.TONGWEI.length === 22 && DZ.tongwei('午').length === 21);
+    ok('神煞補入原書明載而前此未錄者三種（六害・劫殺・亡神）', DZ.BYZHI.length === 28);
+    ok('神煞起例三十六種直載（年干八・年支二十八）', DZ.count() === 36 && DZ.BYGAN.length === 8 && DZ.BYZHI.length === 28);
     ok('年干神煞合原書（庚祿勳在申・甲祿勳在寅）', DZ.byGan('庚')[0].zhi === '申' && DZ.byGan('甲')[0].zhi === '寅');
     ok('歲駕即太歲宮（子年在子・午年在午）', DZ.byZhi('子').find(function (x) { return x.name === '歲駕'; }).zhi === '子' && DZ.byZhi('午').find(function (x) { return x.name === '歲駕'; }).zhi === '午');
-    ok('年支神煞各具十二位無缺', DZ.ZHI.every(function (z) { return DZ.byZhi(z).length === 25; }));
+    ok('年支神煞各具十二位無缺（二十八種，含補入之六害劫殺亡神）', DZ.ZHI.every(function (z) { return DZ.byZhi(z).length === 28; }));
     ok('天干化曜十三種＋吉凶星七種，共二十種', HY.count() === 20);
     ok('祿勳合原書（甲祿在寅・乙祿在卯・庚祿在申）', HY.of('甲').祿勳 === '寅' && HY.of('乙').祿勳 === '卯' && HY.of('庚').祿勳 === '申');
     ok('化曜十干各具二十種且無空', HY.GAN.every(function (g) { var o = HY.of(g); return o.化曜.length === 13 && o.吉凶星.length === 7; }));
@@ -3754,7 +3981,8 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           + '<div class="pg">' + esc(c.gong) + (z === mz ? '<span class="pbadge">命</span>' : '') + '</div>'
           + '<div class="pz">' + esc(z) + '　' + esc(c.ci) + '　主' + esc(c.zhu) + '</div>'
           + (c.who.length ? '<div class="pw">' + c.who.map(function (w) {
-              return '<span>' + esc(w) + (PAN.ming(w, z) ? '<i>' + esc(PAN.ming(w, z)) + '</i>' : '') + '</span>'; }).join('') + '</div>'
+              var y4 = { 羅睺: 1, 計都: 1, 月孛: 1, 紫氣: 1 }[w];
+              return '<span' + (y4 ? ' class="yu4"' : '') + '>' + esc(w) + (PAN.ming(w, z) ? '<i>' + esc(PAN.ming(w, z)) + '</i>' : '') + '</span>'; }).join('') + '</div>'
             : '<div class="pw pnone">（無曜）</div>')
           + '<div class="ps">' + (c.sha.length ? c.sha.map(function (s) { return '<em>' + esc(s) + '</em>'; }).join('') : '')
           + (c.stage ? '<b>' + esc(c.stage) + '</b>' : '') + '</div>'
@@ -3762,7 +3990,32 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           + '</div>';
       });
     });
-    h += '</div><div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
+    h += '</div>';
+    // 靈台星格實判
+    var wxA = WS.season(sunLam).s;
+    var P = { 命宮: mz, 季: wxA, 曜: {} };
+    rows.forEach(function (r) {
+      var z = null; g12.forEach(function (x) { if (XY.mod(r[1] - x.ra, 360) * (365.25 / 360) < x.w) z = x.zhi; });
+      if (z) P.曜[r[0]] = { zhi: z, su: suOfRa(tbl, r[1]).su, lon: r[1] };
+    });
+    var lg = LG.judge(P);
+    h += '<div class="card"><h2>靈台星格　本盤成立 ' + lg.length + ' 格</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '「格」是幾顆星湊成特定位置關係時，古書給的一個名字——例如日月正好相對叫<b>日月合璧</b>、'
+      + '水星在前火星在後同居一宮叫<b>水火既濟</b>。<br><br>'
+      + '原書共三十九格，其中<b>十三格</b>的條件明確、本引擎算得出來，逐條列於下方並附原文所本；'
+      + '其餘二十六格繫於全盤氣勢（如「精神具足」「虎踞龍盤」），非位置可判，'
+      + '照錄於查表分頁，<b>本引擎不代判</b>。</div></div>';
+    if (lg.length) {
+      h += '<table><tr><th>格</th><th>本盤何以成立</th><th>原文</th></tr>';
+      lg.forEach(function (x) {
+        h += '<tr><td class="su" style="color:var(--lv)">' + esc(x.name) + '</td>'
+          + '<td class="tiny">' + esc(x.how) + '</td><td class="tiny">' + esc(x.src) + '</td></tr>';
+      });
+      h += '</table>';
+    } else h += '<div class="note">本盤於可判之十三格中無一成立。</div>';
+    h += '<div class="tiny" style="margin-top:8px">可判者十三格，餘二十六格照錄不判。</div></div>';
+    h += '<div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
     h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div></div>';
     $('outPan').innerHTML = h;
     // 綁定點取
@@ -3774,17 +4027,21 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         var d = '<h3>' + esc(c.gong) + '宮　' + esc(z) + '　' + esc(c.ci) + '</h3>';
         if (gb) d += '<div class="bai"><b>' + esc(gb[0]) + '</b>　' + esc(gb[1]) + '</div>';
         // 宮主與長生
+        var YU4 = { 羅睺: 1, 計都: 1, 月孛: 1, 紫氣: 1 };
+        var cy = function (n) { return '<span style="color:' + (YU4[n] ? 'var(--zhu)' : 'var(--shi2)') + ';font-family:var(--serif)">' + esc(n) + '</span>'; };
+        var csha = function (n) { return '<span style="color:var(--zhu)">' + esc(n) + '</span>'; };
+        var cst = function (n) { return '<span style="color:' + (SS.WANG.indexOf(n) >= 0 ? 'var(--lv)' : 'var(--mu)') + '">' + esc(n) + '</span>'; };
         var st = c.stage ? PAN.stage(c.stage) : null;
         d += '<h4>這一宮強不強</h4><div class="bai">'
           + '每一宮都有一顆<b>宮主星</b>，這一宮的事順不順，先看它的宮主。'
-          + '此宮宮主是 <b>' + esc(c.zhu) + '</b>。'
-          + (st ? '而 ' + esc(c.zhu) + ' 走到 ' + esc(z) + ' 宮，處於「<b>' + esc(c.stage)
-              + '</b>」這一階——' + esc(st[1]) + '，原書歸為<b>' + esc(st[0]) + '</b>。' : '')
+          + '此宮宮主是 ' + cy(c.zhu) + '。'
+          + (st ? '而 ' + cy(c.zhu) + ' 走到 <b>' + esc(z) + '</b> 宮，處於「' + cst(c.stage)
+              + '」這一階——' + esc(st[1]) + '，原書歸為' + cst(c.stage === st[0] ? c.stage : st[0]) + '。' : '')
           + '</div>';
         if (c.sha.length) {
           d += '<h4>這一宮帶什麼煞</h4><div class="bai">'
             + '神煞是依出生年定位的一批吉凶標記，落在哪一宮就影響那一宮。此宮帶：<br>'
-            + c.sha.map(function (s) { return '　·<b>' + esc(s) + '</b>——' + esc(PAN.sha(s) || ''); }).join('<br>')
+            + c.sha.map(function (s) { return '　·' + csha(s) + '——' + esc(PAN.sha(s) || ''); }).join('<br>')
             + '<br><span class="tiny">帶煞不等於一定凶——原書說「煞落空亡迥不同」，還要看有沒有吉星化解。</span></div>';
         }
         d += '<div class="tiny" style="margin:8px 0">行限 ' + ag[0] + ' 至 ' + ag[1] + ' 歲走這一宮'
@@ -3793,7 +4050,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           d += '<h4>落在此宮的曜</h4>';
           c.who.forEach(function (w) {
             var yb = PAN.yao(w), nm = PAN.ming(w, z);
-            d += '<div class="bai" style="margin-bottom:8px"><b>' + esc(w) + '</b>'
+            d += '<div class="bai" style="margin-bottom:8px">' + cy(w)
               + (nm ? '　在此位名「<b>' + esc(nm) + '</b>」' : '') + '<br>' + esc(yb ? yb[1] : '') + '</div>';
           });
           d += '<div class="tiny">各曜在此宮之完整歌訣與原文，見「星盤」分頁。</div>';
@@ -3888,6 +4145,20 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     });
     h += '<div class="tiny" style="margin-top:10px">另有牛宿，僅見於二十八宿一系（卷上大唐月建圖與七政四餘用之），二十七宿系統不用。</div></div>';
 
+    h += '<div class="card"><h2>三垣</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '中國古代把星空分成「<b>三垣二十八宿</b>」兩套。二十八宿沿著日月行經的那條帶子環天一圈，'
+      + '把周天切成二十八段——所以有「宿度」。<b>三垣</b>則是靠近北天極與天頂的三塊天區，不切割周天，因此沒有宿度。<br><br>'
+      + '也就是說：七政四餘的推算全靠宿度，<b>三垣不參與計算</b>。本引擎列出它們的形勢與所主，'
+      + '是為了讓體系完整，不會拿它們去排你的盤。</div></div>';
+    SY4.YUAN.forEach(function (u) {
+      h += '<details class="item"><summary><span class="isu" style="font-size:16px">' + esc(u.name) + '</span>'
+        + '<span class="ihint">' + esc(u.zhu) + '</span></summary>'
+        + '<h4>位置</h4><div class="bai">' + esc(u.wei) + '</div>'
+        + '<h4>形勢</h4><div class="bai">' + esc(u.xiang) + '</div>'
+        + '<h4>備考</h4><div class="tiny">' + esc(u.note) + '</div></details>';
+    });
+    h += '<div class="tiny" style="margin-top:10px">' + esc(SY4.GUANXI) + '</div></div>';
     h += '<div class="card"><h2>十二宮一覽</h2>'
       + '<div class="tiny" style="margin-bottom:10px">與西洋十二星座同源。羊＝牡羊、牛＝金牛、婬（男女）＝雙子、蟹＝巨蟹、師子＝獅子、女＝處女、秤＝天秤、蝎＝天蠍、弓＝射手、磨竭＝摩羯、瓶＝水瓶、魚＝雙魚。</div><table>'
       + '<tr><th>宮</th><th>主什麼事</th><th>生在此宮的人</th></tr>';
