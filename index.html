@@ -130,8 +130,7 @@ input[type=date],input[type=time]{width:100%;min-width:0;font-family:var(--mono)
   font-size:14px;color-scheme:dark;-webkit-appearance:none;appearance:none;
   height:40px;line-height:1.2;box-sizing:border-box}
 select{height:40px;box-sizing:border-box}
-.pandetail{position:sticky;top:0;z-index:2}
-@media(max-width:600px){.row>div.w{flex:1 1 100%}.pandetail{position:static}}
+@media(max-width:600px){.row>div.w{flex:1 1 100%}}
 .formula{font-family:var(--mono);font-size:12.5px;background:var(--gan);border:1px solid var(--line);
   padding:9px 12px;margin:9px 0;border-radius:2px;color:var(--jin2);line-height:1.7;overflow-x:auto}
 .chk{font-family:var(--mono);font-size:11.5px;color:var(--mu);line-height:1.85}
@@ -4278,7 +4277,6 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<b>本盤</b>（哪些曜落在這裡）／<b>神煞與長生</b>／<b>行限歲數</b>（幾歲到幾歲走這一宮）。<br><br>'
       + '<b>點任一格</b>，下方就顯示該宮與其中各曜的白話簡述。'
       + '此頁為速覽，措辭經簡化；原文一字未改，全在「星盤」與「行限」兩頁。</div></div>';
-    h += '<div id="panDetail" class="pandetail"><div class="tiny">點下方任一宮格，此處顯示該宮之白話簡述。</div></div>';
     h += '<div class="card"><h2>命盤</h2><div class="pangrid">';
     // 四象排列：巳午未申 / 辰□□酉 / 卯□□戌 / 寅丑子亥
     var LAYOUT = [['巳', '午', '未', '申'], ['辰', null, null, '酉'], ['卯', null, null, '戌'], ['寅', '丑', '子', '亥']];
@@ -4310,6 +4308,8 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           + '</div>';
       });
     });
+    h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div>';
+    h += '<div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
     h += '</div>';
     // 合格・忌格實判（七政）
     var GONGZHI = {}, ZHIGONG = {};
@@ -4371,7 +4371,6 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       h += '</table>';
     } else h += '<div class="note">本盤於可判之十三格中無一成立。</div>';
     h += '<div class="tiny" style="margin-top:8px">可判者十三格，餘二十六格照錄不判。</div></div>';
-    h += '<div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
     // 他系一瞥（明標出處，不與七政混判）
     (function () {
       var ay2 = ayan(T.jdTT), aa = AS.ascendant(T.jdUT, T.jdTT, v.lon, v.lat);
@@ -4387,6 +4386,41 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       // 宿曜本命宿
       var civ3 = XY.fromJD(T.jdUT + 8 / 24), L3 = XYD.lunarOf(civ3.y, civ3.m, civ3.d);
       var su3 = L3 ? XYD.guFaJia(L3.month, L3.day).name : null;
+      // 各層之白譯
+      var band = tot2 >= 15 ? ['很強', '七曜多得其位，先天格局高，事情推得動'] :
+                 tot2 >= 5 ? ['偏強', '整體得位尚可，多數事情有力可使'] :
+                 tot2 >= -5 ? ['持平', '有得有失，強弱互見，成事看時機'] :
+                 tot2 >= -15 ? ['偏弱', '多數星曜不得其位，做事較費力'] :
+                               ['很弱', '七曜多失其位，先天條件吃緊，宜守不宜攻'];
+      var mlord = HL.DOM[HL.signOf(aa.asc)];
+      var yb = PAN.yao(mlord) || ['', ''];
+      var hlBai = '尊貴總分 <b>' + (tot2 > 0 ? '+' : '') + tot2 + '</b> 屬<b>' + band[0] + '</b>——' + band[1] + '。'
+        + '你的<b>命主星</b>是 <b>' + esc(mlord) + '</b>（上升星座的守護星），它代表你這個人的基調：'
+        + esc((yb[1] || '').replace(/。原書曰.*$/, '。')) + '看它在盤中的分數，就知道這個基調使不使得上力。';
+      var dl = nowD ? nowD.lord : null;
+      var db = dl ? (PAN.yao(dl) || ['', ''])[1] : '';
+      var vdBai = nowD
+        ? '你現在走 <b>' + esc(dl) + '</b> 的大運，' + nowD.from.toFixed(0) + ' 到 ' + nowD.to.toFixed(0)
+          + ' 年，共 ' + nowD.years + ' 年。這段期間的主調由它定：' + esc((db || '').replace(/。原書曰.*$/, '。'))
+          + '大運是吠陀最強的部分——它能把一生切成九段，說明<b>什麼時候</b>那些事會發生。'
+        : '本盤大運未定。';
+      vdBai += '<br><br>出生時月亮落在 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）宿，'
+        + '此宿主星為 <b>' + esc(nk2.lord) + '</b>——大運就是從這裡起算的。';
+      var geN = hitGE.filter(function (x) { return !x.bad; }).length;
+      var jiN = hitGE.length - geN;
+      var qzBai = '命宮在 <b>' + esc(mz) + '</b>。七政四餘的長處是<b>細</b>——'
+        + '同一個位置它會告訴你屬哪一宿、幾度、宮主是誰、帶什麼神煞、合什麼格。<br><br>'
+        + '本盤合格 <b style="color:var(--lv)">' + geN + '</b> 條、忌格 <b style="color:var(--zhu)">' + jiN + '</b> 條，'
+        + '靈台星格成立 <b>' + lg.length + '</b> 格。'
+        + (hitGE.length ? '成立者如「' + esc(hitGE[0].item) + '」，即' + esc(hitGE[0].yao) + '落在 '
+            + esc(hitGE[0].zhi) + ' 宮所致。' : '')
+        + '這些條目全是原書明文，本引擎只判位置是否符合，不加自己的話。';
+      var sb = su3 ? (BY.SU[su3] || ['', ''])[1] : '';
+      var xyBai = su3
+        ? '你的本命宿是 <b>' + esc(su3) + '</b>。經書說生在此宿的人：' + esc(sb) + '<br><br>'
+          + '宿曜真正好用的是<b>擇日</b>：每一天都有一個「值日宿」，把它和你的本命宿一比，'
+          + '就知道那天對你是宜是忌。全年哪幾天是甘露日、金剛峯日、羅剎日，也一併標在日曆上。'
+        : '本命宿未定。';
       h += '<div class="card"><h2>四系同參</h2>'
         + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
         + '四套系統用同一組天體位置，各給一種看法。<b>同參的作法是拉開層次，不是互相印證</b>——'
@@ -4398,21 +4432,26 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '<td>七曜尊貴總分 <b style="color:' + (tot2 >= 0 ? 'var(--lv)' : 'var(--zhu)') + '">'
         + (tot2 > 0 ? '+' : '') + tot2 + '</b>　上升 ' + esc(HL.signOf(aa.asc))
         + '，命主星 <b>' + esc(HL.DOM[HL.signOf(aa.asc)]) + '</b>　'
-        + (isDay2 ? '晝生' : '夜生') + '盤<div class="tiny">分數高者其事有力。見「希臘」分頁。</div></td></tr>'
+        + (isDay2 ? '晝生' : '夜生') + '盤'
+        + '<div class="bai" style="margin-top:8px">' + hlBai + '</div>'
+        + '<div class="tiny" style="margin-top:6px">詳見「希臘」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--lv)">時間</td>'
         + '<td class="tiny"><b>吠陀</b><br>恆星黃道・大運</td>'
         + '<td>' + (nowD ? qy3 + ' 年行 <b>' + esc(nowD.lord) + '</b> 大運（'
             + nowD.from.toFixed(1) + '–' + nowD.to.toFixed(1) + '）' : '大運未定')
         + '　月宿 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）第 ' + nk2.pada + ' 足'
-        + '<div class="tiny">大運主星即該段時期之綱。見「吠陀」分頁。</div></td></tr>'
+        + '<div class="bai" style="margin-top:8px">' + vdBai + '</div>'
+        + '<div class="tiny" style="margin-top:6px">詳見「吠陀」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--jin2)">細節</td>'
         + '<td class="tiny"><b>七政四餘</b><br>宿度・五行神煞</td>'
         + '<td>命宮 <b>' + esc(mz) + '</b>　合格忌格成立 ' + hitGE.length + ' 條・靈台星格 ' + lg.length + ' 格'
-        + '<div class="tiny">即上方十二宮位圖。詳見「星盤」與「行限」分頁。</div></td></tr>'
+        + '<div class="bai" style="margin-top:8px">' + qzBai + '</div>'
+        + '<div class="tiny" style="margin-top:6px">即上方十二宮位圖。詳見「星盤」與「行限」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--zhu)">擇日</td>'
         + '<td class="tiny"><b>宿曜</b><br>二十七宿・白黑月</td>'
         + '<td>本命宿 <b>' + esc(su3 || '—') + '</b>'
-        + '<div class="tiny">以此查每日吉凶。見「本命」與「日曆」分頁。</div></td></tr>'
+        + '<div class="bai" style="margin-top:8px">' + xyBai + '</div>'
+        + '<div class="tiny" style="margin-top:6px">詳見「本命」與「日曆」分頁。</div></td></tr>'
         + '</table>'
         + '<div class="note" style="margin-top:10px"><span class="tag r">四系判準各異</span>'
         + '結果不同是必然的，不代表誰算錯。<b>本引擎不代為合判</b>——'
