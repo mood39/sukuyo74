@@ -131,6 +131,23 @@ input[type=date],input[type=time]{width:100%;min-width:0;font-family:var(--mono)
   height:40px;line-height:1.2;box-sizing:border-box}
 select{height:40px;box-sizing:border-box}
 @media(max-width:600px){.row>div.w{flex:1 1 100%}}
+
+/* 四系同參：系統欄不擠 */
+.sicol{white-space:nowrap;font-family:var(--serif);font-size:15px;line-height:1.5}
+.sicol i{display:block;font-style:normal;font-size:11px;color:var(--mu);white-space:normal;margin-top:3px;line-height:1.5}
+table.sitab{table-layout:fixed}
+table.sitab td:first-child{width:56px}
+table.sitab td:nth-child(2){width:120px}
+@media(max-width:600px){
+  table.sitab,table.sitab tbody,table.sitab tr,table.sitab td,table.sitab th{display:block;width:auto}
+  table.sitab thead{display:none}
+  table.sitab tr{border-bottom:1px solid rgba(200,164,77,.18);padding:8px 0}
+  table.sitab td{border:none;padding:2px 0}
+  table.sitab td:first-child,table.sitab td:nth-child(2){width:auto}
+  .sicol{white-space:normal}
+  .sicol i{display:inline;margin-left:6px}
+}
+.pandetail{margin-top:12px}
 .formula{font-family:var(--mono);font-size:12.5px;background:var(--gan);border:1px solid var(--line);
   padding:9px 12px;margin:9px 0;border-radius:2px;color:var(--jin2);line-height:1.7;overflow-x:auto}
 .chk{font-family:var(--mono);font-size:11.5px;color:var(--mu);line-height:1.85}
@@ -4308,9 +4325,10 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           + '</div>';
       });
     });
-    h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div>';
+    h += '</div>';   // 關閉 .pangrid
     h += '<div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
-    h += '</div>';
+    h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div>';
+    h += '</div>';   // 關閉命盤卡
     // 合格・忌格實判（七政）
     var GONGZHI = {}, ZHIGONG = {};
     ZG.GONG12.forEach(function (gn, k) { var z = AM.ZHI[XY.mod(mi0 - k, 12)]; GONGZHI[gn] = z; ZHIGONG[z] = gn; });
@@ -4426,9 +4444,9 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '四套系統用同一組天體位置，各給一種看法。<b>同參的作法是拉開層次，不是互相印證</b>——'
         + '希臘看格局高低、吠陀看時間、七政看細節、宿曜看擇日。四者<b>絕不混判</b>。<br><br>'
         + '下表只列各系之綱，完整內容在各自分頁。</div></div>'
-        + '<table><tr><th>層</th><th>系統</th><th>本盤</th></tr>'
+        + '<table class="sitab"><tr><th>層</th><th>系統</th><th>本盤</th></tr>'
         + '<tr><td class="su" style="color:var(--shi2)">格局</td>'
-        + '<td class="tiny"><b>希臘古典</b><br>回歸黃道・尊貴量表</td>'
+        + '<td class="sicol" style="color:var(--shi2)">希臘古典<i>回歸黃道・尊貴量表</i></td>'
         + '<td>七曜尊貴總分 <b style="color:' + (tot2 >= 0 ? 'var(--lv)' : 'var(--zhu)') + '">'
         + (tot2 > 0 ? '+' : '') + tot2 + '</b>　上升 ' + esc(HL.signOf(aa.asc))
         + '，命主星 <b>' + esc(HL.DOM[HL.signOf(aa.asc)]) + '</b>　'
@@ -4436,19 +4454,19 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '<div class="bai" style="margin-top:8px">' + hlBai + '</div>'
         + '<div class="tiny" style="margin-top:6px">詳見「希臘」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--lv)">時間</td>'
-        + '<td class="tiny"><b>吠陀</b><br>恆星黃道・大運</td>'
+        + '<td class="sicol" style="color:var(--lv)">吠陀<i>恆星黃道・大運</i></td>'
         + '<td>' + (nowD ? qy3 + ' 年行 <b>' + esc(nowD.lord) + '</b> 大運（'
             + nowD.from.toFixed(1) + '–' + nowD.to.toFixed(1) + '）' : '大運未定')
         + '　月宿 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）第 ' + nk2.pada + ' 足'
         + '<div class="bai" style="margin-top:8px">' + vdBai + '</div>'
         + '<div class="tiny" style="margin-top:6px">詳見「吠陀」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--jin2)">細節</td>'
-        + '<td class="tiny"><b>七政四餘</b><br>宿度・五行神煞</td>'
+        + '<td class="sicol" style="color:var(--jin2)">七政四餘<i>宿度・五行神煞</i></td>'
         + '<td>命宮 <b>' + esc(mz) + '</b>　合格忌格成立 ' + hitGE.length + ' 條・靈台星格 ' + lg.length + ' 格'
         + '<div class="bai" style="margin-top:8px">' + qzBai + '</div>'
         + '<div class="tiny" style="margin-top:6px">即上方十二宮位圖。詳見「星盤」與「行限」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--zhu)">擇日</td>'
-        + '<td class="tiny"><b>宿曜</b><br>二十七宿・白黑月</td>'
+        + '<td class="sicol" style="color:var(--zhu)">宿曜<i>二十七宿・白黑月</i></td>'
         + '<td>本命宿 <b>' + esc(su3 || '—') + '</b>'
         + '<div class="bai" style="margin-top:8px">' + xyBai + '</div>'
         + '<div class="tiny" style="margin-top:6px">詳見「本命」與「日曆」分頁。</div></td></tr>'
