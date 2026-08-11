@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>宿曜 · 七政四餘 合盤</title>
+<title>占星四系同參</title>
 <style>
 :root{
   --gan:#0E1730;--gan2:#16223E;--gan3:#1E2C4C;
@@ -124,6 +124,14 @@ svg{display:block;width:100%;height:auto}
 .dcell.kr u{background:var(--zhu);color:#fff}
 .dcell.dsel{outline:2px solid var(--jin2);outline-offset:-2px}
 @media(max-width:600px){.dcell{min-height:32px}.dcell b{font-size:10.5px}.dcell i{font-size:9px}}
+
+.row>div.w{flex:1 1 200px}
+input[type=date],input[type=time]{width:100%;min-width:0;font-family:var(--mono);
+  font-size:14px;color-scheme:dark;-webkit-appearance:none;appearance:none;
+  height:40px;line-height:1.2;box-sizing:border-box}
+select{height:40px;box-sizing:border-box}
+.pandetail{position:sticky;top:0;z-index:2}
+@media(max-width:600px){.row>div.w{flex:1 1 100%}.pandetail{position:static}}
 .formula{font-family:var(--mono);font-size:12.5px;background:var(--gan);border:1px solid var(--line);
   padding:9px 12px;margin:9px 0;border-radius:2px;color:var(--jin2);line-height:1.7;overflow-x:auto}
 .chk{font-family:var(--mono);font-size:11.5px;color:var(--mu);line-height:1.85}
@@ -169,8 +177,8 @@ details.item[open]>summary .isu{color:var(--jin)}
 <body>
 <div class="wrap">
 <header>
-  <h1>宿曜 · 七政四餘</h1>
-  <div class="sub">兩套古代星命系統，同一份生辰，並列不合併<br>宿曜出唐譯《宿曜經》（印度來源）· 七政四餘據《明史·曆志》（中國本土）</div>
+  <h1>占星四系同參</h1>
+  <div class="sub">宿曜 · 七政四餘 · 希臘古典 · 吠陀——同一份生辰，四套系統各給一種看法<br>共用天體位置，分歧全在解釋層。拉開層次，不互相印證</div>
 </header>
 
 <nav role="tablist">
@@ -228,7 +236,7 @@ details.item[open]>summary .isu{color:var(--jin)}
 
 <footer>
 兩套系統的判斷文字全部照抄原書，未經改寫或挑選。宿曜的吉凶語出唐代佛經，七政四餘這一版只排盤、不斷事。<br>
-本工具用於研究古代曆算與星命文獻的計算結構，不是命理諮詢。
+四系判準各異，結果不同是必然的。本工具用於研究古代曆算與星命文獻的計算結構，不是命理諮詢。
 </footer>
 </div>
 <script>
@@ -4270,6 +4278,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<b>本盤</b>（哪些曜落在這裡）／<b>神煞與長生</b>／<b>行限歲數</b>（幾歲到幾歲走這一宮）。<br><br>'
       + '<b>點任一格</b>，下方就顯示該宮與其中各曜的白話簡述。'
       + '此頁為速覽，措辭經簡化；原文一字未改，全在「星盤」與「行限」兩頁。</div></div>';
+    h += '<div id="panDetail" class="pandetail"><div class="tiny">點下方任一宮格，此處顯示該宮之白話簡述。</div></div>';
     h += '<div class="card"><h2>命盤</h2><div class="pangrid">';
     // 四象排列：巳午未申 / 辰□□酉 / 卯□□戌 / 寅丑子亥
     var LAYOUT = [['巳', '午', '未', '申'], ['辰', null, null, '酉'], ['卯', null, null, '戌'], ['寅', '丑', '子', '亥']];
@@ -4371,22 +4380,45 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       HL.P7.forEach(function (n) { var r = rows.find(function (x) { return x[0] === n; });
         if (r) tot2 += HL.dignity(n, r[1], isDay2).score; });
       var nk2 = VD.nakshatra(XY.mod(XY.moonLon(T.jdTT) - ay2, 360));
-      h += '<div class="card"><h2>他系一瞥</h2>'
-        + '<div class="note" style="margin-bottom:10px"><span class="tag r">出處不同，不可與上文互證</span>'
-        + '以下二項<b>不是七政四餘的判斷</b>，是另外兩套系統用同一組天體位置算出來的結果，'
-        + '列此便於對照。完整內容見「希臘」與「吠陀」二分頁。</div>'
-        + '<table><tr><th>系統</th><th>結果</th></tr>'
-        + '<tr><td class="tiny"><b>希臘古典</b><br>回歸黃道・尊貴量表</td>'
+      // 吠陀現行大運
+      var vm2 = VD.vimshottari(XY.mod(XY.moonLon(T.jdTT) - ay2, 360), v.y);
+      var qy3 = parseDate($('qdate').value, todayYMD()).y;
+      var nowD = vm2 ? vm2.list.filter(function (x) { return qy3 >= x.from && qy3 < x.to; })[0] : null;
+      // 宿曜本命宿
+      var civ3 = XY.fromJD(T.jdUT + 8 / 24), L3 = XYD.lunarOf(civ3.y, civ3.m, civ3.d);
+      var su3 = L3 ? XYD.guFaJia(L3.month, L3.day).name : null;
+      h += '<div class="card"><h2>四系同參</h2>'
+        + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+        + '四套系統用同一組天體位置，各給一種看法。<b>同參的作法是拉開層次，不是互相印證</b>——'
+        + '希臘看格局高低、吠陀看時間、七政看細節、宿曜看擇日。四者<b>絕不混判</b>。<br><br>'
+        + '下表只列各系之綱，完整內容在各自分頁。</div></div>'
+        + '<table><tr><th>層</th><th>系統</th><th>本盤</th></tr>'
+        + '<tr><td class="su" style="color:var(--shi2)">格局</td>'
+        + '<td class="tiny"><b>希臘古典</b><br>回歸黃道・尊貴量表</td>'
         + '<td>七曜尊貴總分 <b style="color:' + (tot2 >= 0 ? 'var(--lv)' : 'var(--zhu)') + '">'
-        + (tot2 > 0 ? '+' : '') + tot2 + '</b>　上升 ' + esc(HL.signOf(aa.asc)) + '，命主星 '
-        + esc(HL.DOM[HL.signOf(aa.asc)]) + '　（' + (isDay2 ? '晝生' : '夜生') + '盤）</td></tr>'
-        + '<tr><td class="tiny"><b>吠陀</b><br>恆星黃道・月宿</td>'
-        + '<td>月宿 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）第 ' + nk2.pada + ' 足・主星 '
-        + esc(nk2.lord) + '</td></tr></table>'
-        + '<div class="tiny" style="margin-top:8px">三系共用天體位置而判準各異：希臘用尊貴計分、吠陀用月宿與大運、'
-        + '七政用宮度廟旺與神煞。<b>結果不同是必然的，不代表誰算錯。</b></div></div>';
+        + (tot2 > 0 ? '+' : '') + tot2 + '</b>　上升 ' + esc(HL.signOf(aa.asc))
+        + '，命主星 <b>' + esc(HL.DOM[HL.signOf(aa.asc)]) + '</b>　'
+        + (isDay2 ? '晝生' : '夜生') + '盤<div class="tiny">分數高者其事有力。見「希臘」分頁。</div></td></tr>'
+        + '<tr><td class="su" style="color:var(--lv)">時間</td>'
+        + '<td class="tiny"><b>吠陀</b><br>恆星黃道・大運</td>'
+        + '<td>' + (nowD ? qy3 + ' 年行 <b>' + esc(nowD.lord) + '</b> 大運（'
+            + nowD.from.toFixed(1) + '–' + nowD.to.toFixed(1) + '）' : '大運未定')
+        + '　月宿 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）第 ' + nk2.pada + ' 足'
+        + '<div class="tiny">大運主星即該段時期之綱。見「吠陀」分頁。</div></td></tr>'
+        + '<tr><td class="su" style="color:var(--jin2)">細節</td>'
+        + '<td class="tiny"><b>七政四餘</b><br>宿度・五行神煞</td>'
+        + '<td>命宮 <b>' + esc(mz) + '</b>　合格忌格成立 ' + hitGE.length + ' 條・靈台星格 ' + lg.length + ' 格'
+        + '<div class="tiny">即上方十二宮位圖。詳見「星盤」與「行限」分頁。</div></td></tr>'
+        + '<tr><td class="su" style="color:var(--zhu)">擇日</td>'
+        + '<td class="tiny"><b>宿曜</b><br>二十七宿・白黑月</td>'
+        + '<td>本命宿 <b>' + esc(su3 || '—') + '</b>'
+        + '<div class="tiny">以此查每日吉凶。見「本命」與「日曆」分頁。</div></td></tr>'
+        + '</table>'
+        + '<div class="note" style="margin-top:10px"><span class="tag r">四系判準各異</span>'
+        + '結果不同是必然的，不代表誰算錯。<b>本引擎不代為合判</b>——'
+        + '把四種看法擺齊，怎麼取捨是看的人的事。</div></div>';
     })();
-    h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div></div>';
+    h += '</div>';
     $('outPan').innerHTML = h;
     // 綁定點取
     AM.ZHI.forEach(function (z) {
@@ -4456,14 +4488,14 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     var isDay = (function () {   // 晝夜：太陽在地平上為晝，粗以上升點與太陽黃經之相對位置判
       var d = XY.mod(sunL - a.asc, 360); return d >= 180;
     })();
-    var h = '<div class="plain"><div class="ph">白話說明 · 這一頁是什麼</div><div class="pb">'
-      + '同一組天體位置，三套系統會給出<b>三種不同的解釋</b>。這一頁把它們並排，不合併、不裁斷誰為正。<br><br>'
-      + '<b>共用的底層</b>：日月五星的真實位置、上升點、黃赤轉換——三系完全相同，本引擎只算一次。<br>'
-      + '<b>分歧之處</b>：①黃道座標——希臘用回歸（以春分點為準），吠陀與七政用恆星（扣掉歲差）。'
-      + '本盤兩者相差 <b>' + ay.toFixed(2) + '°</b>，足以讓同一顆星落在不同星座。'
-      + '②分宮——希臘與吠陀用整宮制，七政用宿度制。'
-      + '③判準——希臘用尊貴量表打分，吠陀用行星互視與大運，七政用五行生剋與神煞。<br><br>'
-      + '<b>本頁只出前二系，七政在「命盤」與「星盤」。</b>三系不互相印證，只是三種說法並列。</div></div>';
+    var h = '<div class="plain"><div class="ph">白話說明 · 希臘古典占星</div><div class="pb">'
+      + '西洋古典傳統。與吠陀、七政共用同一組天體位置，但<b>用回歸黃道</b>——以春分點為零度，'
+      + '而非天上實際的星群。本盤回歸與恆星相差 <b>' + ay.toFixed(2) + '°</b>，'
+      + '足以讓同一顆星在兩套系統裡落在不同星座。<br><br>'
+      + '<b>它最強的地方是「打分」</b>：不問你覺得如何，而用一套嚴格的量表為每顆星評定強弱——'
+      + '廟、旺、三分、界、面各有明確分數，落與弱則扣分。這是可以量化、可以驗算的判準。<br><br>'
+      + '<b>它的短處</b>：回歸黃道今日已與實際星群脫節，且沒有月宿那一層細部刻畫。<br><br>'
+      + '<b>此頁全為希臘判準，不與吠陀或七政互證。</b></div></div>';
 
     // ── 希臘 ──
     h += '<div class="card"><h2>希臘古典　必然尊貴</h2>'
@@ -4683,71 +4715,99 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
 
   function renderIntro() {
     var h = '';
-    h += '<div class="card sum"><h2>這個工具跟坊間排盤有什麼不同</h2>'
-      + '<div class="pb" style="font-size:14px;line-height:1.95">'
-      + '<b>一、不給你單一答案，給你所有答案並列。</b>同一個生日，宿曜經自己就有兩套算法，'
-      + '而它們又都和今天用天文公式算出的真實月亮位置對不上。多數工具會挑一個給你，這裡四種都算出來擺在一起，'
-      + '並告訴你差多少。哪一種比較合天，是可以量的——實測結果也寫在文獻頁裡。<br><br>'
-      + '<b>二、實算，不查表。</b>日月五星的位置是從天文公式現算的，農曆是從真實朔望與節氣推的，'
-      + '二十八宿的寬度是從每宿標準星的實際位置算到你的生辰。所以換個年代，數字會跟著變——古書上的宿度表彼此不同，正是這個原因。<br><br>'
+    h += '<div class="card sum"><h2>四系同參是什麼意思</h2><div class="pb" style="font-size:14px;line-height:1.95">'
+      + '這個工具同時排四套古代星命系統的盤。它們<b>共用同一組天體位置</b>——'
+      + '日月五星的真實位置、上升點、黃赤轉換，本引擎只算一次；'
+      + '<b>分歧全在解釋層</b>：黃道座標不同、分宮法不同、判準不同、推運法不同。<br><br>'
+      + '所以四套會給出不同的答案。<b>那不是誰算錯，是四種不同的看法。</b><br><br>'
+      + '若把命理比作天氣預報——現代占星是「體感描述」（覺得悶熱）；'
+      + '希臘古典是「氣壓與風向數據」（準確但缺中長期預測）；'
+      + '吠陀是「電腦氣象模擬」（時間推算最精）；七政四餘則像「在地老農的物候經驗」（細節最富）。<br><br>'
+      + '<b>同參的作法是拉開層次，不是互相印證：</b></div>'
+      + '<table style="margin-top:12px"><tr><th>層</th><th>用哪一系</th><th>看什麼</th><th>因為</th></tr>'
+      + '<tr><td class="su" style="color:var(--shi2)">格局</td><td class="su">希臘古典</td>'
+      + '<td class="tiny">先天體質與格局高低</td><td class="tiny">尊貴評分最細膩，有量表可打分</td></tr>'
+      + '<tr><td class="su" style="color:var(--lv)">時間</td><td class="su">吠陀</td>'
+      + '<td class="tiny">何時發病與痊癒</td><td class="tiny">大運分法最精，能推到年月</td></tr>'
+      + '<tr><td class="su" style="color:var(--jin2)">細節</td><td class="su">七政四餘</td>'
+      + '<td class="tiny">症狀的顏色與細節</td><td class="tiny">五行神煞最富，宿度分得最細</td></tr>'
+      + '<tr><td class="su" style="color:var(--zhu)">擇日</td><td class="su">宿曜</td>'
+      + '<td class="tiny">哪一天宜做什麼</td><td class="tiny">值日宿與白黑月自成一套日曆</td></tr>'
+      + '</table><div class="tiny" style="margin-top:10px"><b>三套拉開層次，絕不混用。</b>'
+      + '本引擎凡並列他系之處，皆冠系統名並標明出處。</div></div>';
+
+    h += '<div class="card"><h2>四系各是什麼</h2>';
+    [['宿曜', 'var(--zhu)', '唐代自印度傳入的佛經曆法，出《宿曜經》（T1299）。把月亮繞天一圈分成二十七段，'
+      + '你出生時月亮走到哪一段就是<b>本命宿</b>——概念近西洋星座，但星座看太陽、宿看月亮。'
+      + '另有白黑月、七曜（星期制傳入中國的最早記錄之一）、三九祕宿盤。'
+      + '本引擎四軌並列：經書兩套曆日算法，加上今日天文的回歸與恆星兩種錨定。',
+      '本命・日曆'],
+     ['七政四餘', 'var(--jin2)', '中國本土的星命術，據《明史·曆志》與《張果星宗》。<b>七政</b>是日月與金木水火土五顆真星；'
+      + '<b>四餘</b>是四個算出來的點——羅睺計都為月亮軌道的兩個交點、月孛為月亮遠地點、'
+      + '紫氣則<span class="tag r">沒有天文對應</span>（明末官方修曆時判定為後人捏造）。'
+      + '命宮不看東方地平線，而是自太陽所在宮起、卯時起每時辰逆退一宮。'
+      + '判斷層一千餘條全數入庫，照錄原文未改。',
+      '命盤・星盤・行限'],
+     ['希臘古典', 'var(--shi2)', '西洋古典傳統。用<b>回歸黃道</b>（以春分點為零度）。'
+      + '最強處是<b>打分</b>——廟5旺4三分3界2面1、落−5弱−4，為每顆星評定強弱，'
+      + '不問感受而有量表可驗。相位容許度依星體本質而定（日15°、火8°），非現代統一之十度。'
+      + '另有光線傳遞、法達星限、小限等現代占星不用的法則。'
+      + '短處是回歸黃道今已與實際星群脫節，且無月宿層。',
+      '希臘'],
+     ['吠陀', 'var(--lv)', '印度傳統。用<b>恆星黃道</b>（扣掉歲差），天文上較實。'
+      + '與宿曜同源（皆二十七宿），惟宿曜傳入中國後另立曆日推法，吠陀始終取真實月位。'
+      + '最強處是<b>時間推算</b>——Vimshottari 大運九曜輪值合一百二十年，'
+      + '起運已走年數由月亮在該宿內的比例定，能推到年月。另有九分盤 D9 與行星互視。',
+      '吠陀']].forEach(function (s) {
+      h += '<details class="item"><summary><span class="isu" style="font-size:17px;color:' + s[1] + '">'
+        + esc(s[0]) + '</span><span class="ihint">見「' + esc(s[3]) + '」分頁</span></summary>'
+        + '<div class="bai">' + s[2] + '</div></details>';
+    });
+    h += '</div>';
+
+    h += '<div class="card"><h2>這個工具跟坊間排盤有什麼不同</h2><div class="pb" style="font-size:14px;line-height:1.95">'
+      + '<b>一、不給單一答案，給所有答案並列。</b>同一個生日，宿曜經自己就有兩套算法，'
+      + '而它們又都和今天用天文公式算出的真實月亮位置對不上。多數工具會挑一個給你，'
+      + '這裡四種都算出來擺在一起，並告訴你差多少。<br><br>'
+      + '<b>二、實算，不查表。</b>日月五星的位置從天文公式現算，農曆從真實朔望與節氣推，'
+      + '二十八宿的寬度從每宿標準星的實際位置算到你的生辰。換個年代數字會跟著變——'
+      + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
-      + '凡是推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 162 項，包括拿古書自己的例子回驗算法、拿獨立的商用星盤對數字。'
-      + '文獻頁最下方看得到全部結果。</div></div>';
+      + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
+      + '<b>四、每次開啟都自我檢查。</b>目前 177 項，包括拿古書自己的例子回驗算法、'
+      + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
-    h += '<div class="card"><h2>兩套系統一眼看懂</h2><table>'
-      + '<tr><th></th><th>宿曜</th><th>七政四餘</th></tr>'
-      + '<tr><td class="tiny">來源</td><td>唐代自印度傳入，佛經</td><td>中國本土，據《明史·曆志》與《張果星宗》</td></tr>'
-      + '<tr><td class="tiny">主角</td><td class="su">月亮</td><td class="su">日月五星四餘</td></tr>'
-      + '<tr><td class="tiny">分天</td><td>二十七宿，<b>等分</b>，各 13°20′</td><td>二十八宿，<b>不等分</b>，井 33 度、觜為負</td></tr>'
-      + '<tr><td class="tiny">牛宿</td><td>不用</td><td>用</td></tr>'
-      + '<tr><td class="tiny">命宮</td><td>不立命宮，論本命宿</td><td>自太陽所在宮起，卯時起逆退</td></tr>'
+    h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
+      + '<tr><th></th><th>宿曜／吠陀</th><th>七政四餘</th></tr>'
+      + '<tr><td class="tiny">宿數</td><td class="su">二十七</td><td class="su">二十八</td></tr>'
+      + '<tr><td class="tiny">牛宿</td><td class="tiny">不用</td><td class="tiny">用</td></tr>'
+      + '<tr><td class="tiny">寬度</td><td class="tiny"><b>等分</b>，各 13°20′</td>'
+      + '<td class="tiny"><b>不等分</b>，井 33 度、觜今為負</td></tr>'
       + '<tr><td class="tiny">計都</td><td class="su">月亮遠地點</td><td class="su">降交點（另立月孛）</td></tr>'
-      + '<tr><td class="tiny">本引擎</td><td>推步＋判斷＋白話</td><td>推步＋判斷，判斷照錄不譯</td></tr>'
-      + '</table><div class="tiny" style="margin-top:8px">兩者同源於印度星占，唐代分流，此後各自發展八百年。「計都」一詞的兩種解釋，就是分流的斷面。</div></div>';
-
-    h += '<div class="card"><h2>宿曜怎麼算</h2>'
-      + '<div class="pb" style="font-size:13.5px;line-height:1.9">'
-      + '把月亮繞天一圈的路分成二十七段，出生時月亮走到哪一段，那就是<b>本命宿</b>。<br><br>'
-      + '經書給的是曆日推法（不必看天，查農曆就行）：<br>'
-      + '<div class="formula">本命宿 ＝ 自該月「望宿」起，順數（農曆日 − 15）位</div>'
-      + '望宿是十二個月各自定死的（正月翼、二月角、三月氐……）。經書另給一個等價的略算法：'
-      + '<div class="formula">（農曆日 ＋ 13）÷ 27 取餘，自望宿數起</div>'
-      + '而今天的天文算法是直接算月亮位置：'
-      + '<div class="formula">本命宿序 ＝ ⌊ 月亮黃經 ÷ 13°20′ ⌋，自婁宿起算</div>'
-      + '兩者常差一到兩宿——因為曆日推法假設月亮每天恰走一宿，實際上月繞天一周是 27.32 日、而農曆一月是 29.53 日，兩個週期對不齊。'
-      + '經書自己知道，所以才設「前合／隨合／並合」三合法來修。</div></div>';
-
-    h += '<div class="card"><h2>七政四餘怎麼算</h2>'
-      + '<div class="pb" style="font-size:13.5px;line-height:1.9">'
-      + '<b>七政</b>是太陽、月亮加金木水火土五顆真星。<b>四餘</b>是四個算出來的點：<br>'
-      + '　·羅睺、計都＝月亮軌道與太陽軌道的兩個交點（日月食就發生在這裡）<br>'
-      + '　·月孛＝月亮離地球最遠的那個點<br>'
-      + '　·紫氣＝<span class="tag r">沒有天文對應</span>明末官方修曆時查過，判定是後人捏造<br><br>'
-      + '<b>命宮</b>不看東方地平線，而是：'
-      + '<div class="formula">命宮 ＝ 太陽所在宮，自卯時起算，每過一時辰逆退一宮</div>'
-      + '<b>宿度</b>（每宿多寬）不是定數，由相鄰兩宿標準星的赤經差算得：'
-      + '<div class="formula">某宿宿度 ＝ 次宿距星赤經 − 本宿距星赤經（化為中國度，周天 365.25）</div>'
-      + '因為恆星會隨歲差移動，宿度逐代改變——觜宿在漢代約二度，到明代已成負值，被參宿越了過去。'
-      + '這也是為什麼古書的宿度表彼此不同：不是誰抄錯，是測的年代不同。</div></div>';
+      + '</table><div class="tiny" style="margin-top:8px">兩者同源於印度星占，唐代分流，此後各自發展八百年。'
+      + '「計都」一詞的兩種解釋，就是分流的斷面——見「環圖」分頁，兩根指針畫在同一個圓上。</div></div>';
 
     h += '<div class="card"><h2>各分頁做什麼</h2><table>'
       + '<tr><td class="su">導覽</td><td class="tiny">你現在看的這頁</td></tr>'
-      + '<tr><td class="su">本命</td><td class="tiny">宿曜：本命宿、十二宮、三九祕宿盤、經書原文與白話</td></tr>'
-      + '<tr><td class="su">日曆</td><td class="tiny">宿曜：查任一天的值日宿、白黑月、七曜，以及今天對你的吉凶</td></tr>'
-      + '<tr><td class="su">星盤</td><td class="tiny">七政四餘：十一曜位置、命宮、十二宮位、神煞、化曜、格局實判</td></tr>'
-      + '<tr><td class="su">環圖</td><td class="tiny">兩套系統畫在同一個圓上，看它們為什麼給出不同答案</td></tr>'
-      + '<tr><td class="su">查表</td><td class="tiny">不必先算生辰，直接查任何一宿、任何一宮的說法</td></tr>'
-      + '<tr><td class="su">文獻</td><td class="tiny">底本、校記、算法所據、開機自檢結果。分宿曜與七政兩頁</td></tr>'
+      + '<tr><td class="su" style="color:var(--zhu)">本命</td><td class="tiny">宿曜：本命宿、十二宮、三九祕宿盤、經書原文與白話</td></tr>'
+      + '<tr><td class="su" style="color:var(--zhu)">日曆</td><td class="tiny">宿曜：全年月曆，標甘露／金剛峯／羅剎日，點日查宜忌</td></tr>'
+      + '<tr><td class="su" style="color:var(--jin2)">命盤</td><td class="tiny">七政：十二宮位圖，點格看詳情；末附四層同參摘要</td></tr>'
+      + '<tr><td class="su" style="color:var(--jin2)">星盤</td><td class="tiny">七政：十一曜位置、神煞、化曜、格局、宿度四軌</td></tr>'
+      + '<tr><td class="su" style="color:var(--jin2)">行限</td><td class="tiny">七政：宮限與倒限二法並列</td></tr>'
+      + '<tr><td class="su" style="color:var(--shi2)">希臘</td><td class="tiny">尊貴量表、托勒密相位、光線傳遞、小限、法達星限</td></tr>'
+      + '<tr><td class="su" style="color:var(--lv)">吠陀</td><td class="tiny">月宿、Vimshottari 大運、九分盤 D9、Yoga、行星互視</td></tr>'
+      + '<tr><td class="su">環圖</td><td class="tiny">兩套宿畫在同一個圓上，看它們為何給出不同答案</td></tr>'
+      + '<tr><td class="su">查表</td><td class="tiny">不必先算生辰，直接查任何一宿、任何一宮、三垣</td></tr>'
+      + '<tr><td class="su">文獻</td><td class="tiny">底本、校記、算法所據、開機自檢。分宿曜與七政兩頁</td></tr>'
       + '</table></div>';
 
     h += '<div class="card"><h2>該怎麼看待這些結果</h2><div class="note">'
       + '這是研究古代曆算與星命文獻計算結構的工具，不是命理諮詢。<br><br>'
-      + '判斷層的文字全部照抄原書，一個字沒改也沒挑選——那是唐代佛經與明代星書的原話，'
-      + '反映的是當時的世界觀，不是對你的預測。看不懂是正常的，那是一千多年前的文言。<br><br>'
+      + '判斷層的文字全部照抄原書，一個字沒改也沒挑選——那是唐代佛經、明代星書、'
+      + '希臘與印度古典的原話，反映的是當時的世界觀，不是對你的預測。<br><br>'
       + '真正可以驗證的是<b>曆算</b>部分：日月五星的位置、農曆的推算、宿度的變遷。'
-      + '這些有對錯可言，也確實被驗證過。至於吉凶，那不在可驗證的範圍內，本引擎只負責把原文擺對位置。'
-      + '</div></div>';
+      + '這些有對錯可言，也確實被驗證過。至於吉凶，那不在可驗證的範圍內，'
+      + '本引擎只負責把原文擺對位置。</div></div>';
     $('outIntro').innerHTML = h;
   }
   function renderLookup() {
