@@ -101,6 +101,23 @@ svg{display:block;width:100%;height:auto}
 .pancenter .pct{font-size:11px;color:var(--mu);margin-top:8px;line-height:1.6}
 .pandetail{background:var(--gan2);border:1px solid var(--line);border-radius:2px;padding:14px 16px;margin-top:12px}
 .pandetail h3{font-family:var(--serif);font-size:17px;color:var(--jin2);margin:0 0 10px;letter-spacing:.1em}
+.vgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:8px}
+.vcell{background:var(--gan);border:1px solid rgba(127,169,142,.30);border-radius:2px;padding:6px 7px;min-height:88px}
+.vcell.vlagna{border-color:var(--lv);background:rgba(127,169,142,.14)}
+.vcell .vs{font-family:var(--serif);font-size:13px;color:var(--lv);letter-spacing:.06em}
+.vcell .vs u{text-decoration:none;font-size:10px;background:var(--lv);color:#10241A;padding:1px 4px;border-radius:2px;margin-left:4px}
+.vcell .vh{font-size:10px;color:var(--mu);margin-left:5px}
+.vcell .vp{font-size:12.5px;line-height:1.7;color:var(--juan);margin-top:4px}
+.vcell .vp span{display:inline-block;margin-right:6px;color:var(--juan)}
+.vcell .vp span.vnode{color:var(--zhu)}
+.vcell .vp i{font-style:normal;color:var(--mu);font-size:10px;margin-left:1px}
+.vcell .vp em{font-style:normal;color:var(--lv);font-size:10px;margin-left:1px}
+.vcenter{background:var(--gan2);border:1px solid rgba(127,169,142,.30);border-radius:2px;grid-area:2/2/4/4;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:10px}
+.vcenter .vcn{font-family:var(--serif);font-size:15px;color:var(--lv);letter-spacing:.1em}
+.vcenter .vct{font-size:11px;color:var(--mu);margin-top:6px;line-height:1.65}
+@media(max-width:600px){.vcell{min-height:72px;padding:4px 5px}.vcell .vs{font-size:11.5px}
+  .vcell .vp{font-size:11px}.vcenter{padding:6px}.vcenter .vcn{font-size:12px}.vcenter .vct{font-size:10px}}
 @media(max-width:600px){.pangrid{gap:3px}.pancell{min-height:92px;padding:5px 6px}
   .pancell .pg{font-size:13px}.pancell .pw{font-size:11.5px}.pancenter{padding:8px}
   .pancenter .pcn{font-size:11px}.pancenter .pcs{font-size:11.5px}}
@@ -136,14 +153,14 @@ select{height:40px;box-sizing:border-box}
 .sicol{white-space:nowrap;font-family:var(--serif);font-size:15px;line-height:1.5}
 .sicol i{display:block;font-style:normal;font-size:11px;color:var(--mu);white-space:normal;margin-top:3px;line-height:1.5}
 table.sitab{table-layout:fixed}
-table.sitab td:first-child{width:56px}
-table.sitab td:nth-child(2){width:120px}
+table.sitab col.sc1{width:56px}
+table.sitab col.sc2{width:132px}
 @media(max-width:600px){
   table.sitab,table.sitab tbody,table.sitab tr,table.sitab td,table.sitab th{display:block;width:auto}
   table.sitab thead{display:none}
   table.sitab tr{border-bottom:1px solid rgba(200,164,77,.18);padding:8px 0}
   table.sitab td{border:none;padding:2px 0}
-  table.sitab td:first-child,table.sitab td:nth-child(2){width:auto}
+  table.sitab colgroup{display:none}
   .sicol{white-space:normal}
   .sicol i{display:inline;margin-left:6px}
 }
@@ -229,6 +246,9 @@ details.item[open]>summary .isu{color:var(--jin)}
       <div class="w"><label for="qdate">查詢日期</label><input id="qdate" type="date" min="0600-01-01" max="2200-12-31"></div>
       <div class="w"><label for="xmode">行限用何法</label><select id="xmode">
         <option value="both">兩法並列</option><option value="gong">甲・宮限</option><option value="dao">乙・倒限</option>
+      </select></div>
+      <div class="w"><label for="nodemode">羅計取平交點或真交點</label><select id="nodemode">
+        <option value="true">真交點（含週期項）</option><option value="mean">平交點（多數吠陀排盤所用）</option>
       </select></div>
     </div>
   </div>
@@ -2420,6 +2440,7 @@ var VD = (function (XY) {
       y += d[1];
     }
     return { start: n.lord, elapsed: elapsed, list: out };
+    /* 註：呼叫端須傳「小數年」（含月日），否則起訖最多可差一年 */
   }
   /* 分盤 Varga —— D9 九分盤（Navāṁśa），吠陀最重之副盤，主婚姻與後半生
      每宮 30° 分九分，各 3°20′。起法：火象宮自牡羊起、土象自摩羯、風象自天秤、水象自巨蟹。 */
@@ -2481,10 +2502,111 @@ var VD = (function (XY) {
     });
     return out;
   }
+  /* ── 曜之強弱（Graha Bala 之靜態部分）——據《Bṛhat Parāśara Horā Śāstra》
+     Uccha 旺（附精確度）／Nīca 弱（旺之對宮同度）／Svakṣetra 本宮／Mūlatrikoṇa 根本三角 */
+  var UCCHA = { 太陽: ['牡羊', 10], 太陰: ['金牛', 3], 火星: ['摩羯', 28], 水星: ['處女', 15],
+    木星: ['巨蟹', 5], 金星: ['雙魚', 27], 土星: ['天秤', 20], 羅睺: ['金牛', 20], 計都: ['天蠍', 20] };
+  var SVA = { 太陽: ['獅子'], 太陰: ['巨蟹'], 火星: ['牡羊', '天蠍'], 水星: ['雙子', '處女'],
+    木星: ['射手', '雙魚'], 金星: ['金牛', '天秤'], 土星: ['摩羯', '水瓶'] };
+  // [宮, 起度, 訖度]
+  var MOOL = { 太陽: ['獅子', 0, 20], 太陰: ['金牛', 4, 30], 火星: ['牡羊', 0, 12],
+    水星: ['處女', 16, 20], 木星: ['射手', 0, 10], 金星: ['天秤', 0, 15], 土星: ['水瓶', 0, 20] };
+  /* 自然友敵 Naisargika Maitrī：友 / 中 / 敵（餘者為中） */
+  var MAITRI = {
+    太陽: { 友: ['太陰', '火星', '木星'], 敵: ['金星', '土星'] },
+    太陰: { 友: ['太陽', '水星'], 敵: [] },
+    火星: { 友: ['太陽', '太陰', '木星'], 敵: ['水星'] },
+    水星: { 友: ['太陽', '金星'], 敵: ['太陰'] },
+    木星: { 友: ['太陽', '太陰', '火星'], 敵: ['水星', '金星'] },
+    金星: { 友: ['水星', '土星'], 敵: ['太陽', '太陰'] },
+    土星: { 友: ['水星', '金星'], 敵: ['太陽', '太陰', '火星'] }
+  };
+  var P7V = ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星'];
+  function maitri(a, b) {
+    var m = MAITRI[a]; if (!m || a === b) return null;
+    if (m.友.indexOf(b) >= 0) return '友';
+    if (m.敵.indexOf(b) >= 0) return '敵';
+    return P7V.indexOf(b) >= 0 ? '中' : null;
+  }
+  /* 燃燒 Astaṅgata：距太陽若干度以內即被日光所掩（BPHS 之度數） */
+  var COMBUST = { 太陰: 12, 火星: 17, 水星: 14, 木星: 11, 金星: 10, 土星: 15 };
+  function combust(yao, sidLon, sunSidLon) {
+    var o = COMBUST[yao]; if (!o) return null;
+    var d = Math.abs(XY.mod(sidLon - sunSidLon + 180, 360) - 180);
+    return d <= o ? { d: d, orb: o } : null;
+  }
+  /* 曜於某恆星黃經之靜態強弱 */
+  function bala(yao, sidLon) {
+    var L = XY.mod(sidLon, 360), si = Math.floor(L / 30), sign = RASI[si], deg = L - si * 30;
+    var out = [];
+    var u = UCCHA[yao];
+    if (u) {
+      if (u[0] === sign) out.push({ k: '旺', w: 'Uccha', v: 2, note: '極旺點 ' + u[1] + '°，本盤差 ' + Math.abs(deg - u[1]).toFixed(1) + '°' });
+      else if (RASI[XY.mod(RASI.indexOf(u[0]) + 6, 12)] === sign) out.push({ k: '弱', w: 'Nīca', v: -2, note: '極弱點 ' + u[1] + '°' });
+    }
+    var mt = MOOL[yao];
+    if (mt && mt[0] === sign && deg >= mt[1] && deg < mt[2]) out.push({ k: '根本三角', w: 'Mūlatrikoṇa', v: 2, note: mt[0] + ' ' + mt[1] + '–' + mt[2] + '°' });
+    else if ((SVA[yao] || []).indexOf(sign) >= 0) out.push({ k: '本宮', w: 'Svakṣetra', v: 1, note: '' });
+    return { sign: sign, deg: deg, list: out, lord: DOMV[sign] };
+  }
+  // Rāśi 之主星（與希臘之古典守護同，然此處為恆星宮）
+  var DOMV = { 牡羊: '火星', 金牛: '金星', 雙子: '水星', 巨蟹: '太陰', 獅子: '太陽', 處女: '水星',
+    天秤: '金星', 天蠍: '火星', 射手: '木星', 摩羯: '土星', 水瓶: '土星', 雙魚: '木星' };
+
+  /* ── Antardaśā：大運均分為九，依同序輪值，各段年數＝大運年數 × 該曜年數 ÷ 120 */
+  function antardasha(lord, years, fromY) {
+    var i = DASHA.map(function (d) { return d[0]; }).indexOf(lord);
+    if (i < 0) return [];
+    var out = [], y = fromY;
+    for (var k = 0; k < 9; k++) {
+      var d = DASHA[(i + k) % 9], w = years * d[1] / 120;
+      out.push({ lord: d[0], years: w, from: y, to: y + w });
+      y += w;
+    }
+    return out;
+  }
+
+  /* ── 行星互視實判：甲之宮位起算，乙落於甲所視之第幾宮則甲視乙（單向） */
+  function drishtiPairs(signOf) {
+    var ns = Object.keys(signOf), out = [];
+    ns.forEach(function (a) {
+      var see = drishti(a);
+      ns.forEach(function (b) {
+        if (a === b) return;
+        var d = XY.mod(RASI.indexOf(signOf[b]) - RASI.indexOf(signOf[a]), 12) + 1;
+        if (see.indexOf(d) >= 0) out.push({ from: a, to: b, house: d });
+      });
+    });
+    return out;
+  }
+
+  /* ── 分盤通則 Varga
+     D7 Saptāṁśa（子女）：每宮七分，奇宮自本宮起、偶宮自第七宮起
+     D10 Daśāṁśa（事業）：每宮十分，奇宮自本宮起、偶宮自第九宮起 */
+  function varga(sidLon, D) {
+    var L = XY.mod(sidLon, 360), si = Math.floor(L / 30), deg = L - si * 30;
+    var n = Math.floor(deg / (30 / D));
+    var odd = (si % 2 === 0);            // 牡羊為第一宮，index 0 即奇宮
+    var st;
+    if (D === 7) st = odd ? si : XY.mod(si + 6, 12);
+    else if (D === 10) st = odd ? si : XY.mod(si + 8, 12);
+    else if (D === 9) { var E = { 0: 0, 1: 9, 2: 6, 3: 3 }; st = E[si % 4]; }
+    else st = si;
+    return { sign: RASI[XY.mod(st + n, 12)], part: n + 1, from: RASI[si] };
+  }
+
+  /* ── 南印方形盤（Rāśi Cakra）之格位：星座固定、宮位隨命宮而移
+     列序自左上順時針：雙魚 牡羊 金牛 雙子／水瓶 ⋯ 巨蟹／摩羯 ⋯ 獅子／射手 天蠍 天秤 處女 */
+  var SIDX = [11, 0, 1, 2, 10, null, null, 3, 9, null, null, 4, 8, 7, 6, 5];
+  function southLayout() { return SIDX.slice(); }
+
   function rasiOf(sidLon) { return RASI[Math.floor(XY.mod(sidLon, 360) / 30)]; }
   return { RASI: RASI, NAK: NAK, DASHA: DASHA, SPECIAL: SPECIAL,
     drishti: drishti, nakshatra: nakshatra, vimshottari: vimshottari, rasiOf: rasiOf,
-    YOGA: YOGA, navamsa: navamsa, yogas: yogas };
+    YOGA: YOGA, navamsa: navamsa, yogas: yogas,
+    UCCHA: UCCHA, SVA: SVA, MOOL: MOOL, MAITRI: MAITRI, P7V: P7V, COMBUST: COMBUST, DOMV: DOMV,
+    maitri: maitri, combust: combust, bala: bala, antardasha: antardasha,
+    drishtiPairs: drishtiPairs, varga: varga, SIDX: SIDX, southLayout: southLayout };
 })(XY);
 
 
@@ -3504,7 +3626,7 @@ var AS = (function (XY) {
           + '<td class="su">' + esc(x.zhi) + '</td><td class="tiny">' + esc(x.note) + '</td></tr>';
       });
       h += '</table><div class="tiny" style="margin-top:8px">共 ' + (DZ.count() + DZ.TONGWEI.length) + ' 種（原書直載 ' + DZ.count() + '、依例補位 ' + DZ.TONGWEI.length + '）。年干支以西曆年推，未計立春前後之別。'
-  '</div></div>';
+        + '</div></div>';
     }
     // ── 卦氣・鬥杓・唐符 ──
     if (sunG) {
@@ -4132,6 +4254,77 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       var jie = XY.norm360(SY.trueNode(T) + 180), bo = XY.norm360(SY.meanPerigee(T) + 180);
       return Math.abs(XY.mod(jie - bo + 180, 360) - 180) > 5;
     })(), '七政說（降交點）與宿曜說（遠地點）相距逾五度');
+    /* ── v40 新增：吠陀層之十項（前此吠陀僅四項，補強後須逐層可驗） ── */
+    ok('吠陀旺弱表：七曜各具旺宮與精確度，弱宮恰為旺之對宮', (function () {
+      var a = VD.bala('太陽', 10), b = VD.bala('太陽', 190);
+      var c = VD.bala('太陰', 33), d = VD.bala('太陰', 213);
+      return a.list[0].k === '旺' && b.list[0].k === '弱' && c.list[0].k === '旺' && d.list[0].k === '弱'
+        && ['太陽','太陰','火星','水星','木星','金星','土星'].every(function (y) { return !!VD.UCCHA[y]; });
+    })());
+    ok('吠陀本宮 Svakṣetra 十二宮無重無漏（日月各一・五星各二）', (function () {
+      var a = []; for (var k in VD.SVA) a = a.concat(VD.SVA[k]);
+      var u = {}; a.forEach(function (x) { u[x] = 1; });
+      return a.length === 12 && Object.keys(u).length === 12
+        && VD.SVA['太陽'].length === 1 && VD.SVA['太陰'].length === 1;
+    })());
+    ok('根本三角 Mūlatrikoṇa 七曜齊備；六曜在其本宮，太陰獨在其旺宮（古法如此）', (function () {
+      var ks = Object.keys(VD.MOOL), n = 0;
+      ks.forEach(function (y) { if (VD.SVA[y].indexOf(VD.MOOL[y][0]) >= 0) n++; });
+      return ks.length === 7 && n === 6
+        && VD.MOOL['太陰'][0] === '金牛' && VD.UCCHA['太陰'][0] === '金牛'
+        && VD.SVA['太陰'].indexOf('金牛') < 0;
+    })(), '太陰之根本三角在金牛（其旺宮）而非巨蟹（其本宮）——七曜中唯一之例外，非表誤');
+    ok('自然友敵 Naisargika：七曜對其餘六曜皆有定位，自身不與自身論', (function () {
+      var n = 0;
+      VD.P7V.forEach(function (a) { VD.P7V.forEach(function (b) {
+        if (a === b) { if (VD.maitri(a, b) === null) n++; }
+        else if (['友','中','敵'].indexOf(VD.maitri(a, b)) >= 0) n++; }); });
+      return n === 49;
+    })(), '7×7＝49 格全定');
+    ok('Antardaśā 九段合大運年數（土星十九年）', (function () {
+      var ad = VD.antardasha('土星', 19, 0);
+      var sum = ad.reduce(function (s, x) { return s + x.years; }, 0);
+      return ad.length === 9 && ad[0].lord === '土星' && Math.abs(sum - 19) < 1e-9
+        && Math.abs(ad[0].years - 19 * 19 / 120) < 1e-9;
+    })());
+    ok('分盤起法：D9 依四象・D10 偶宮自第九・D7 偶宮自第七', (function () {
+      return VD.varga(0, 9).sign === '牡羊' && VD.varga(30, 9).sign === '摩羯'
+        && VD.varga(0, 10).sign === '牡羊' && VD.varga(30, 10).sign === '摩羯'
+        && VD.varga(0, 7).sign === '牡羊' && VD.varga(30, 7).sign === '天蠍';
+    })());
+    ok('Vimshottari 九運起訖相續且合一百二十年', (function () {
+      var v = VD.vimshottari(0, 2000);
+      if (!v || v.list.length !== 9) return false;
+      var ok2 = Math.abs(v.list[0].from - 2000) < 1e-9;
+      for (var i = 1; i < 9; i++) if (Math.abs(v.list[i].from - v.list[i - 1].to) > 1e-9) ok2 = false;
+      return ok2 && Math.abs(v.list[8].to - v.list[0].from - 120) < 1e-9;
+    })(), '起訖已改以生時小數年為本，非僅取生年');
+    ok('南印方形盤位：十二星座無重無漏，中央四格為空', (function () {
+      var L = VD.southLayout(), u = {}, nul = 0;
+      L.forEach(function (x) { if (x === null) nul++; else u[x] = 1; });
+      return L.length === 16 && nul === 4 && Object.keys(u).length === 12;
+    })());
+    ok('Dṛṣṭi 實判為單向（火視第四宮者，彼不回視）', (function () {
+      var d = VD.drishtiPairs({ 火星: '牡羊', 金星: '巨蟹' });
+      return d.length === 1 && d[0].from === '火星' && d[0].to === '金星' && d[0].house === 4;
+    })());
+    ok('對外部吠陀排盤逐曜相合（2026-08-11 11:57 台北）：七曜與上升皆合至一分，羅睺須取平交點', (function () {
+      var jdUT = XY.toJD(2026, 8, 11, 11 + 57 / 60 - 8), jdTT = jdUT + XY.deltaT(2026) / 86400;
+      var ay = XY.ayanamsaLahiri(jdTT), sid = function (l) { return XY.mod(l - ay, 360); };
+      var R = { 太陽: 114.2833, 太陰: 92.8833, 水星: 98.1667, 金星: 160.1167,
+        火星: 65.6333, 木星: 104.9667, 土星: 350.3167 };
+      var mx = 0;
+      Object.keys(R).forEach(function (k) {
+        var g = (k === '太陽') ? XY.sunLon(jdTT) : (k === '太陰') ? XY.moonLon(jdTT) : PL.geoLon(k, jdTT).lon;
+        var d = Math.abs(XY.mod(sid(g) - R[k] + 180, 360) - 180); if (d > mx) mx = d;
+      });
+      var asc = AS.ascendant(jdUT, jdTT, 121.5654, 25.0330).asc;
+      var dAsc = Math.abs(XY.mod(sid(asc) - 200.7667 + 180, 360) - 180);
+      var Tc = (jdTT - 2451545) / 36525;
+      var dMean = Math.abs(XY.mod(XY.mod(SY.meanNode(Tc) - ay, 360) - 306.1667 + 180, 360) - 180);
+      var dTrue = Math.abs(XY.mod(XY.mod(SY.trueNode(Tc) - ay, 360) - 306.1667 + 180, 360) - 180);
+      return mx < 0.03 && dAsc < 0.1 && dMean < 0.03 && dTrue > 0.3;
+    })(), '七曜最大差 <0.02°、上升 <0.05°；平交點合至 0.01°而真交點差 0.5°——外部排盤所用者為平交點');
     return R;
   }
 
@@ -4397,10 +4590,19 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       HL.P7.forEach(function (n) { var r = rows.find(function (x) { return x[0] === n; });
         if (r) tot2 += HL.dignity(n, r[1], isDay2).score; });
       var nk2 = VD.nakshatra(XY.mod(XY.moonLon(T.jdTT) - ay2, 360));
-      // 吠陀現行大運
-      var vm2 = VD.vimshottari(XY.mod(XY.moonLon(T.jdTT) - ay2, 360), v.y);
+      // 吠陀現行大運（起訖以生時小數年計）
+      var civV = XY.fromJD(T.jdUT + 8 / 24);
+      var byDec2 = civV.y + (T.jdUT + 8 / 24 - XY.toJD(civV.y, 1, 1, 0)) / 365.2422;
+      var vm2 = VD.vimshottari(XY.mod(XY.moonLon(T.jdTT) - ay2, 360), byDec2);
       var qy3 = parseDate($('qdate').value, todayYMD()).y;
       var nowD = vm2 ? vm2.list.filter(function (x) { return qy3 >= x.from && qy3 < x.to; })[0] : null;
+      // 吠陀之 Lagna（恆星上升宮）與月亮所在宮——只給指標，盤在吠陀分頁
+      var vAscSign = VD.rasiOf(XY.mod(aa.asc - ay2, 360));
+      var vAi = VD.RASI.indexOf(vAscSign);
+      var vMoonSign = VD.rasiOf(XY.mod(XY.moonLon(T.jdTT) - ay2, 360));
+      var vMoonH = XY.mod(VD.RASI.indexOf(vMoonSign) - vAi, 12) + 1;
+      var nowA = nowD ? VD.antardasha(nowD.lord, nowD.years, nowD.from)
+        .filter(function (x) { return qy3 >= x.from && qy3 < x.to; })[0] : null;
       // 宿曜本命宿
       var civ3 = XY.fromJD(T.jdUT + 8 / 24), L3 = XYD.lunarOf(civ3.y, civ3.m, civ3.d);
       var su3 = L3 ? XYD.guFaJia(L3.month, L3.day).name : null;
@@ -4422,8 +4624,14 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           + ' 年，共 ' + nowD.years + ' 年。這段期間的主調由它定：' + esc((db || '').replace(/。原書曰.*$/, '。'))
           + '大運是吠陀最強的部分——它能把一生切成九段，說明<b>什麼時候</b>那些事會發生。'
         : '本盤大運未定。';
+      if (nowA) vdBai += '大運之下再分九段，現行 <b>' + esc(nowD.lord) + ' / ' + esc(nowA.lord)
+        + '</b>（' + nowA.from.toFixed(1) + '–' + nowA.to.toFixed(1) + '）。';
       vdBai += '<br><br>出生時月亮落在 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）宿，'
-        + '此宿主星為 <b>' + esc(nk2.lord) + '</b>——大運就是從這裡起算的。';
+        + '此宿主星為 <b>' + esc(nk2.lord) + '</b>——大運就是從這裡起算的。'
+        + '<br><br><b>吠陀的十二宮另成一套</b>：第一宮＝上升點所在的恆星星座 <b>' + esc(vAscSign) + '</b>，'
+        + '月亮落其第 <b>' + vMoonH + '</b> 宮。'
+        + '<span style="color:var(--zhu)">此宮與上方七政十二宮位圖無關，不可對照</span>——'
+        + '起點、座標、宮義三者皆異，盤在「吠陀」分頁。';
       var geN = hitGE.filter(function (x) { return !x.bad; }).length;
       var jiN = hitGE.length - geN;
       var qzBai = '命宮在 <b>' + esc(mz) + '</b>。七政四餘的長處是<b>細</b>——'
@@ -4444,7 +4652,8 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '四套系統用同一組天體位置，各給一種看法。<b>同參的作法是拉開層次，不是互相印證</b>——'
         + '希臘看格局高低、吠陀看時間、七政看細節、宿曜看擇日。四者<b>絕不混判</b>。<br><br>'
         + '下表只列各系之綱，完整內容在各自分頁。</div></div>'
-        + '<table class="sitab"><tr><th>層</th><th>系統</th><th>本盤</th></tr>'
+        + '<table class="sitab"><colgroup><col class="sc1"><col class="sc2"><col></colgroup>'
+        + '<thead><tr><th>層</th><th>系統</th><th>本盤</th></tr></thead><tbody>'
         + '<tr><td class="su" style="color:var(--shi2)">格局</td>'
         + '<td class="sicol" style="color:var(--shi2)">希臘古典<i>回歸黃道・尊貴量表</i></td>'
         + '<td>七曜尊貴總分 <b style="color:' + (tot2 >= 0 ? 'var(--lv)' : 'var(--zhu)') + '">'
@@ -4456,8 +4665,11 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '<tr><td class="su" style="color:var(--lv)">時間</td>'
         + '<td class="sicol" style="color:var(--lv)">吠陀<i>恆星黃道・大運</i></td>'
         + '<td>' + (nowD ? qy3 + ' 年行 <b>' + esc(nowD.lord) + '</b> 大運（'
-            + nowD.from.toFixed(1) + '–' + nowD.to.toFixed(1) + '）' : '大運未定')
+            + nowD.from.toFixed(1) + '–' + nowD.to.toFixed(1) + '）'
+            + (nowA ? '・小運 <b>' + esc(nowA.lord) + '</b>' : '') : '大運未定')
         + '　月宿 <b>' + esc(nk2.name) + '</b>（' + esc(nk2.han) + '）第 ' + nk2.pada + ' 足'
+        + '<br>吠陀 Lagna <b>' + esc(vAscSign) + '</b>（恆星）・月在第 ' + vMoonH + ' 宮'
+        + '<span class="tiny" style="color:var(--mu)">　此十二宮非七政十二宮</span>'
         + '<div class="bai" style="margin-top:8px">' + vdBai + '</div>'
         + '<div class="tiny" style="margin-top:6px">詳見「吠陀」分頁。</div></td></tr>'
         + '<tr><td class="su" style="color:var(--jin2)">細節</td>'
@@ -4470,12 +4682,11 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '<td>本命宿 <b>' + esc(su3 || '—') + '</b>'
         + '<div class="bai" style="margin-top:8px">' + xyBai + '</div>'
         + '<div class="tiny" style="margin-top:6px">詳見「本命」與「日曆」分頁。</div></td></tr>'
-        + '</table>'
+        + '</tbody></table>'
         + '<div class="note" style="margin-top:10px"><span class="tag r">四系判準各異</span>'
         + '結果不同是必然的，不代表誰算錯。<b>本引擎不代為合判</b>——'
         + '把四種看法擺齊，怎麼取捨是看的人的事。</div></div>';
     })();
-    h += '</div>';
     $('outPan').innerHTML = h;
     // 綁定點取
     AM.ZHI.forEach(function (z) {
@@ -4659,90 +4870,253 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   function renderXiV() {
     var v = readInput(), T = resolve(v);
     var ay = ayan(T.jdTT);
+    var Tc = (T.jdTT - 2451545) / 36525;
+    var nodeMode = ($('nodemode') && $('nodemode').value) || 'true';
+    var rahuTrop = (nodeMode === 'mean') ? SY.meanNode(Tc) : SY.trueNode(Tc);
     var rows = [['太陽', XY.sunLon(T.jdTT)], ['太陰', XY.moonLon(T.jdTT)]];
     PL.names.forEach(function (n) { rows.push([n, PL.geoLon(n, T.jdTT).lon]); });
+    rows.push(['羅睺', XY.norm360(rahuTrop)]);
+    rows.push(['計都', XY.norm360(rahuTrop + 180)]);
     var a = AS.ascendant(T.jdUT, T.jdTT, v.lon, v.lat);
     var qy = parseDate($('qdate').value, todayYMD()).y;
-    var h = '<div class="plain"><div class="ph">白話說明 · 吠陀占星</div><div class="pb">'
-      + '印度傳統。與希臘共用同一組天體位置，但<b>用恆星黃道</b>（扣掉歲差 ' + ay.toFixed(2) + '°），'
-      + '且多一層<b>月宿</b>——這是希臘完全沒有的。<br><br>'
-      + '與宿曜同源（皆二十七宿），惟宿曜傳入中國後另立望宿法等曆日推法，吠陀則始終取真實月位。'
-      + '兩者於「本命」分頁並列可對照。<br><br>'
-      + '<b>此頁全為吠陀判準，不與希臘或七政互證。</b></div></div>';
-    // ── 吠陀 ──
-    var sidMoon = XY.mod(XY.moonLon(T.jdTT) - ay, 360);
+    var sid = function (lon) { return XY.mod(lon - ay, 360); };
+    var sidAsc = sid(a.asc), sidMoon = sid(XY.moonLon(T.jdTT)), sidSun = sid(XY.sunLon(T.jdTT));
     var nk = VD.nakshatra(sidMoon);
-    h += '<div class="card"><h2>吠陀　恆星黃道</h2>'
-      + '<div class="tiny" style="margin-bottom:10px">扣除歲差 ' + ay.toFixed(2) + '° 後之位置。'
-      + '與宿曜同用二十七宿，惟吠陀始終取真實月位，宿曜傳入中國後另立望宿法等曆日推法——'
-      + '本引擎兩者並列於「本命」分頁。</div>'
-      + '<table><tr><th>曜</th><th>回歸</th><th>恆星</th><th>恆星星座</th></tr>';
+    var ascSign = VD.rasiOf(sidAsc), ai = VD.RASI.indexOf(ascSign);
+    function houseOf(sg) { return XY.mod(VD.RASI.indexOf(sg) - ai, 12) + 1; }
+    /* 逆行：以前後半日之黃經差判；日月不逆，羅計恆逆 */
+    function retro(n) {
+      if (n === '太陽' || n === '太陰') return false;
+      if (n === '羅睺' || n === '計都') return true;
+      var b = PL.geoLon(n, T.jdTT - 0.5).lon, c = PL.geoLon(n, T.jdTT + 0.5).lon;
+      return (XY.mod(c - b + 180, 360) - 180) < 0;
+    }
+    /* 生時小數年（含月日）——大運起訖之所本 */
+    var civB = XY.fromJD(T.jdUT + 8 / 24);
+    var byDec = civB.y + (T.jdUT + 8 / 24 - XY.toJD(civB.y, 1, 1, 0)) / 365.2422;
+    var ABBR = { 太陽: '日', 太陰: '月', 火星: '火', 水星: '水', 木星: '木', 金星: '金', 土星: '土', 羅睺: '羅', 計都: '計' };
+
+    var h = '<div class="plain"><div class="ph">白話說明 · 吠陀占星</div><div class="pb">'
+      + '印度傳統。與希臘共用同一組天體位置，但<b>用恆星黃道</b>——扣掉歲差 ' + ay.toFixed(2) + '°（Lahiri），'
+      + '所以同一顆星在兩系會落在不同星座。<br><br>'
+      + '<b>吠陀比希臘多兩層</b>：一是<b>月宿</b>（二十七宿，大運由此起算），二是<b>整宮制的十二宮</b>——'
+      + '第一宮即上升點所在的那個恆星星座，整宮就是一宮。<br><br>'
+      + '本頁羅計取<b>' + (nodeMode === 'mean' ? '平交點' : '真交點') + '</b>（可於上方生辰卡切換）。'
+      + '兩者可差一度餘，跨宿界時宿名就會不同——多數線上吠陀排盤預設用平交點。<br><br>'
+      + '<b>此頁全為吠陀判準，不與希臘或七政互證。這裡的十二宮也不是七政的十二宮</b>'
+      + '（七政命宮由太陽所在宮加生時逆退，座標用宿度；此處第一宮由上升點定，座標用恆星等分十二宮）。</div></div>';
+
+    /* ── 一、Rāśi 盤（南印方形，星座固定、宮位隨命宮而移） ── */
+    var atSign = {};
     rows.forEach(function (r) {
-      var s = XY.mod(r[1] - ay, 360);
-      h += '<tr><td class="qi">' + esc(r[0]) + '</td><td class="num">' + r[1].toFixed(2) + '°</td>'
-        + '<td class="num">' + s.toFixed(2) + '°</td><td class="su">' + esc(VD.rasiOf(s)) + ' '
-        + (XY.mod(s, 30)).toFixed(1) + '°</td></tr>';
+      var sg = VD.rasiOf(sid(r[1]));
+      (atSign[sg] = atSign[sg] || []).push(r[0]);
     });
+    h += '<div class="card"><h2>吠陀　Rāśi 盤（D1）</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '南印方形盤：<b>星座固定在格子上不動</b>（左上起順時針為雙魚・牡羊・金牛・雙子…），'
+      + '移動的是宮位——標「命」的那一格是第一宮，其後順時針數。<br><br>'
+      + '這張盤與命盤分頁的七政十二宮位圖<b>形狀刻意不同，也不共用任何資料</b>：'
+      + '七政那張是四×四斗數式、宮名固定（命財帛兄弟…）、地支為軸；'
+      + '這張是星座為軸、宮位為序號。<b>兩張不可疊看。</b></div></div>';
+    h += '<div class="vgrid">';
+    var SI = VD.southLayout();
+    for (var gi = 0; gi < 16; gi++) {
+      if (SI[gi] === null) { if (gi === 5) h += '<div class="vcenter">'
+        + '<div class="vcn">吠陀 Rāśi 盤</div>'
+        + '<div class="vct">Lagna（第一宮）　<b style="color:var(--lv)">' + esc(ascSign) + '</b><br>'
+        + '上升 ' + XY.mod(sidAsc, 30).toFixed(2) + '°（恆星）<br>'
+        + 'ayanāṁśa ' + ay.toFixed(2) + '°　Lahiri</div></div>'; continue; }
+      var sg2 = VD.RASI[SI[gi]], hs = houseOf(sg2), who = atSign[sg2] || [];
+      h += '<div class="vcell' + (hs === 1 ? ' vlagna' : '') + '">'
+        + '<div class="vs">' + esc(sg2) + (hs === 1 ? '<u>命</u>' : '') + '<span class="vh">' + hs + '</span></div>'
+        + (who.length ? '<div class="vp">' + who.map(function (n) {
+            var isN = (n === '羅睺' || n === '計都');
+            var b2 = VD.bala(n, sid(rows.find(function (x) { return x[0] === n; })[1]));
+            var mk = b2.list.length ? '<em>' + esc(b2.list[0].k) + '</em>' : '';
+            return '<span' + (isN ? ' class="vnode"' : '') + '>' + esc(ABBR[n] || n)
+              + '<i>' + XY.mod(sid(rows.find(function (x) { return x[0] === n; })[1]), 30).toFixed(0) + '</i>'
+              + mk + '</span>'; }).join('') + '</div>' : '')
+        + '</div>';
+    }
+    h += '</div>';
+    h += '<div class="tiny" style="margin-top:8px">格內小字為宮內度數（恆星，取整）；'
+      + '綠字為該曜之旺／弱／本宮／根本三角。羅計以朱色標，示其為算點而非實星。</div></div>';
+
+    /* ── 二、曜位表 ── */
+    h += '<div class="card"><h2>曜位　Graha</h2>'
+      + '<div class="tiny" style="margin-bottom:10px">恆星黃道。每一曜除星座外，另給其所躔之宿與宿主——'
+      + '這一層希臘完全沒有，是吠陀與宿曜共有的。</div>'
+      + '<table><tr><th>曜</th><th>恆星黃經</th><th>Rāśi</th><th>宮</th><th>Nakṣatra</th><th>宿主</th><th>足</th></tr>';
+    [['上升', a.asc]].concat(rows).forEach(function (r) {
+      var sl = sid(r[1]), sg = VD.rasiOf(sl), nn = VD.nakshatra(sl);
+      var isN = (r[0] === '羅睺' || r[0] === '計都');
+      h += '<tr><td class="' + (isN ? 'yu' : 'qi') + '" style="font-size:15px">' + esc(r[0])
+        + (r[0] !== '上升' && retro(r[0]) ? '<span class="tiny" style="color:var(--zhu)"> ℞</span>' : '') + '</td>'
+        + '<td class="num">' + sl.toFixed(2) + '°</td>'
+        + '<td class="su" style="font-size:14px">' + esc(sg) + ' ' + XY.mod(sl, 30).toFixed(2) + '°</td>'
+        + '<td class="num">' + houseOf(sg) + '</td>'
+        + '<td class="tiny">' + esc(nn.name) + '（' + esc(nn.han) + '）</td>'
+        + '<td class="qi" style="font-size:14px">' + esc(nn.lord) + '</td>'
+        + '<td class="num">' + nn.pada + '</td></tr>';
+    });
+    var rt = XY.norm360(SY.trueNode(Tc) - ay), rm = XY.norm360(SY.meanNode(Tc) - ay);
+    h += '</table><div class="tiny" style="margin-top:8px">℞ 為逆行（以前後半日之黃經差判）。羅計恆為逆行。'
+      + '回歸黃經見「希臘」分頁，兩者相差即 ayanāṁśa ' + ay.toFixed(2) + '°。</div>'
+      + '<div class="note" style="margin-top:8px"><span class="tag j">兩軌並列</span>'
+      + '羅睺　真交點 <b>' + rt.toFixed(2) + '°</b>（' + esc(VD.nakshatra(rt).name) + '）'
+      + '／平交點 <b>' + rm.toFixed(2) + '°</b>（' + esc(VD.nakshatra(rm).name) + '）'
+      + '　相差 ' + Math.abs(XY.mod(rt - rm + 180, 360) - 180).toFixed(2) + '°'
+      + '<div class="tiny" style="margin-top:4px">本頁現用<b>' + (nodeMode === 'mean' ? '平交點' : '真交點') + '</b>。'
+      + '真交點含週期改正、天文較實；平交點為多數線上吠陀排盤之預設。'
+      + '<b>不同是正常，非計算錯誤</b>——跨宿界時宿名會因此而異。</div></div></div>';
+
+    /* ── 三、十二宮 Bhāva ── */
+    h += '<div class="card"><h2>十二宮　Bhāva</h2>'
+      + '<div class="tiny" style="margin-bottom:10px">整宮制：上升所在之星座即第一宮，一星座一宮，不切度數。'
+      + '每宮之主星（Rāśi Lord）即該星座之守護。<b>宮名用序號與梵名，不用七政的財帛田宅</b>——判準不同，不可互代。</div>'
+      + '<table><tr><th>宮</th><th>梵名</th><th>Rāśi</th><th>宮主</th><th>宮主落於</th><th>本宮之曜</th></tr>';
+    var BHAVA = ['Tanu 身', 'Dhana 財', 'Sahaja 弟', 'Bandhu 宅', 'Putra 子', 'Ari 敵',
+      'Yuvati 偶', 'Randhra 厄', 'Dharma 法', 'Karma 業', 'Lābha 得', 'Vyaya 失'];
+    for (var k = 0; k < 12; k++) {
+      var sg3 = VD.RASI[XY.mod(ai + k, 12)], ld = VD.DOMV[sg3];
+      var lr = rows.find(function (x) { return x[0] === ld; });
+      var lh = lr ? houseOf(VD.rasiOf(sid(lr[1]))) : null;
+      var who3 = (atSign[sg3] || []);
+      h += '<tr' + (k === 0 ? ' class="hi"' : '') + '><td class="su">' + (k + 1) + '</td>'
+        + '<td class="tiny">' + esc(BHAVA[k]) + '</td>'
+        + '<td class="su" style="font-size:14px">' + esc(sg3) + '</td>'
+        + '<td class="qi" style="font-size:14px">' + esc(ld) + '</td>'
+        + '<td class="tiny">' + (lh ? '第 ' + lh + ' 宮' : '—') + '</td>'
+        + '<td class="su" style="font-size:14px">' + esc(who3.join('・')) + '</td></tr>';
+    }
     h += '</table></div>';
-    h += '<div class="card"><h2>月宿　Nakshatra</h2>'
+
+    /* ── 四、月宿 ── */
+    h += '<div class="card"><h2>月宿　Nakṣatra</h2>'
       + '<div class="big">' + esc(nk.name) + '<span class="bigsub">' + esc(nk.han) + '</span></div>'
       + '<div class="tiny" style="margin-top:6px">第 ' + (nk.idx + 1) + ' 宿・宿內 ' + nk.deg.toFixed(2)
       + '°・第 ' + nk.pada + ' 足（pāda）・主星 <b>' + esc(nk.lord) + '</b></div>'
-      + '<div class="note" style="margin-top:8px">每宿 13°20′，四足各 3°20′。此宿之主星即 Vimshottari 大運之起點。</div></div>';
-    var vm = VD.vimshottari(sidMoon, v.y);
+      + '<div class="note" style="margin-top:8px">每宿 13°20′，四足各 3°20′。此宿之主星即 Vimshottari 大運之起點。'
+      + '宿曜用的是同一組二十七宿，惟其本命宿由曆日推法而得、非取真實月位——'
+      + '「本命」分頁四軌並列即此差別。</div></div>';
+
+    /* ── 五、大運與 Antardaśā ── */
+    var vm = VD.vimshottari(sidMoon, byDec);
     if (vm) {
       h += '<div class="card"><h2>Vimshottari 大運</h2>'
         + '<div class="tiny" style="margin-bottom:10px">九曜輪值，合一百二十年。自出生時月宿主星起算，'
-        + '起運已走之年數由月亮在該宿內之比例定之（本盤已走 ' + vm.elapsed.toFixed(2) + ' 年）。</div>'
-        + '<table><tr><th>主星</th><th>年數</th><th>起訖（西元）</th><th></th></tr>';
+        + '起運已走之年數由月亮在該宿內之比例定之（本盤已走 ' + vm.elapsed.toFixed(2) + ' 年）。'
+        + '<b>起訖以生時之小數年計</b>（' + byDec.toFixed(3) + '），非僅取生年——只取整數年最多可差一年。</div>'
+        + '<table><tr><th>大運</th><th>年數</th><th>起訖（西元）</th><th></th></tr>';
       vm.list.forEach(function (x) {
         var now = (qy >= x.from && qy < x.to);
         h += '<tr' + (now ? ' class="hi"' : '') + '><td class="qi">' + esc(x.lord) + '</td>'
           + '<td class="num">' + x.years + '</td>'
-          + '<td class="num">' + x.from.toFixed(1) + ' – ' + x.to.toFixed(1) + '</td>'
+          + '<td class="num">' + x.from.toFixed(2) + ' – ' + x.to.toFixed(2) + '</td>'
           + '<td class="tiny">' + (now ? '<span class="tag j">現行</span>' : '') + '</td></tr>';
       });
-      h += '</table></div>';
+      h += '</table>';
+      var nowM = vm.list.filter(function (x) { return qy >= x.from && qy < x.to; })[0];
+      if (nowM) {
+        var ad = VD.antardasha(nowM.lord, nowM.years, nowM.from);
+        h += '<h4>現行大運之九 Antardaśā</h4>'
+          + '<div class="tiny" style="margin-bottom:6px">大運再分九段，依同序輪值，'
+          + '各段年數＝大運年數 × 該曜年數 ÷ 120。此為吠陀推到年月之所本。</div>'
+          + '<table><tr><th>大運／小運</th><th>年數</th><th>起訖</th><th></th></tr>';
+        ad.forEach(function (x) {
+          var on = (qy >= x.from && qy < x.to);
+          h += '<tr' + (on ? ' class="hi"' : '') + '><td class="qi">' + esc(nowM.lord) + ' / ' + esc(x.lord) + '</td>'
+            + '<td class="num">' + x.years.toFixed(2) + '</td>'
+            + '<td class="num">' + x.from.toFixed(2) + ' – ' + x.to.toFixed(2) + '</td>'
+            + '<td class="tiny">' + (on ? '<span class="tag j">現行</span>' : '') + '</td></tr>';
+        });
+        h += '</table>';
+      }
+      h += '</div>';
     }
-    h += '<div class="card"><h2>行星互視　Drishti</h2>'
-      + '<div class="tiny" style="margin-bottom:8px">吠陀特有之規則：一切行星皆視其第七宮（對宮）；'
-      + '另火星加視第四、第八宮，木星加視第五、第九宮，土星加視第三、第十宮。'
-      + '此與希臘之相位不同——<b>互視是單向的</b>，甲視乙不表示乙視甲。</div><table>';
-    ['火星', '木星', '土星', '太陽'].forEach(function (n) {
-      h += '<tr><td class="qi">' + esc(n) + '</td><td class="tiny">視第 ' + VD.drishti(n).join('・') + ' 宮</td></tr>';
-    });
-    h += '<tr><td class="tiny" colspan="2">其餘曜皆只視第七宮。</td></tr></table></div>';
 
-    // D9 九分盤
-    var sidAsc = XY.mod(a.asc - ay, 360);
-    h += '<div class="card"><h2>九分盤　D9 Navāṁśa</h2>'
-      + '<div class="tiny" style="margin-bottom:10px">吠陀最重之副盤，主婚姻與後半生。'
-      + '每宮三十度分作九分（各 3°20′），起法依四象——火象自牡羊起、土象自摩羯、風象自天秤、水象自巨蟹。'
-      + '本盤之曜若於 D9 亦得其位，謂之 vargottama，其力倍之。</div>'
-      + '<table><tr><th>曜</th><th>本盤（D1）</th><th>九分盤（D9）</th><th></th></tr>';
+    /* ── 六、廟旺・友敵・燃燒 ── */
+    h += '<div class="card"><h2>曜之強弱　廟旺・友敵・燃燒</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '吠陀判強弱有三個獨立的問法，本引擎逐一實判：<br>'
+      + '<b>一、落在什麼座</b>——旺（Uccha）／弱（Nīca，旺之對宮）／本宮（Svakṣetra）／根本三角（Mūlatrikoṇa）。<br>'
+      + '<b>二、跟這一宮的主人合不合</b>——自然友敵（Naisargika Maitrī）。作客於友人之宮則安，於敵人之宮則不安。<br>'
+      + '<b>三、離太陽太近</b>——燃燒（Astaṅgata），被日光所掩則力減。<br><br>'
+      + '這與希臘的尊貴量表<b>不是同一套</b>：希臘用回歸黃道且五等計分，吠陀用恆星黃道、不計分而分項判。</div></div>'
+      + '<table><tr><th>曜</th><th>Rāśi</th><th>座之強弱</th><th>與宮主之自然關係</th><th>燃燒</th></tr>';
+    ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星'].forEach(function (n) {
+      var r = rows.find(function (x) { return x[0] === n; }); if (!r) return;
+      var sl = sid(r[1]), b = VD.bala(n, sl);
+      var rel = VD.maitri(n, b.lord);
+      var cb = VD.combust(n, sl, sidSun);
+      h += '<tr><td class="qi">' + esc(n) + '</td><td class="su" style="font-size:14px">' + esc(b.sign) + '</td>'
+        + '<td class="tiny">' + (b.list.length ? b.list.map(function (x) {
+            return '<span class="tag ' + (x.v > 0 ? 'g' : 'r') + '">' + esc(x.k) + '</span>'
+              + '<span class="tiny">' + esc(x.w) + (x.note ? '　' + esc(x.note) : '') + '</span>'; }).join('　')
+          : '<span style="opacity:.5">無（旅居 Sama）</span>') + '</td>'
+        + '<td class="tiny">' + (n === b.lord ? '自為宮主'
+            : (rel ? '<span class="tag ' + (rel === '友' ? 'g' : rel === '敵' ? 'r' : '') + '">' + rel + '</span>宮主 ' + esc(b.lord) : '—')) + '</td>'
+        + '<td class="tiny">' + (cb ? '<span class="tag r">燃燒</span>距日 ' + cb.d.toFixed(1) + '°（界 ' + cb.orb + '°）'
+            : (n === '太陽' ? '—' : '否')) + '</td></tr>';
+    });
+    h += '</table><div class="tiny" style="margin-top:8px">依《Bṛhat Parāśara Horā Śāstra》。'
+      + '羅計無本宮之說，其旺弱各家不一（本引擎表中列金牛／天蠍二十度一系），故不入此表。</div></div>';
+
+    /* ── 七、Drishti 實判 ── */
+    var signOf = {};
+    rows.forEach(function (r) { signOf[r[0]] = VD.rasiOf(sid(r[1])); });
+    var dp = VD.drishtiPairs(signOf);
+    h += '<div class="card"><h2>行星互視　Dṛṣṭi　本盤 ' + dp.length + ' 組</h2>'
+      + '<div class="tiny" style="margin-bottom:10px">吠陀特有：一切曜皆視其第七宮（對宮）；'
+      + '另火星加視第四、第八宮，木星加視第五、第九宮，土星加視第三、第十宮。'
+      + '<b>互視是單向的</b>——甲視乙不表示乙視甲，故下表逐向列出。'
+      + '此與希臘之相位不同（相位是雙向的、且有容許度）。</div>'
+      + '<table><tr><th>視者</th><th>所視</th><th>第幾宮</th></tr>';
+    dp.forEach(function (x) {
+      h += '<tr><td class="qi">' + esc(x.from) + '</td><td class="su" style="font-size:14px">' + esc(x.to) + '</td>'
+        + '<td class="num">第 ' + x.house + ' 宮</td></tr>';
+    });
+    if (!dp.length) h += '<tr><td class="tiny" colspan="3">本盤無成立之互視。</td></tr>';
+    h += '</table><div class="tiny" style="margin-top:8px">各曜所視：'
+      + ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星', '羅睺', '計都'].map(function (n) {
+          return esc(n) + ' 第 ' + VD.drishti(n).join('・') + ' 宮'; }).join('　')
+      + '。整宮制，不計度數。</div></div>';
+
+    /* ── 八、分盤 Varga ── */
+    h += '<div class="card"><h2>分盤　Varga　D9・D10・D7</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '把一個星座再切成 N 份，每份對應到另一個星座，就成一張副盤。'
+      + '<b>D9 九分盤</b>主婚姻與後半生（吠陀最重）、<b>D10 十分盤</b>主事業、<b>D7 七分盤</b>主子女。<br><br>'
+      + '起法：D9 依四象（火象自牡羊、土象自摩羯、風象自天秤、水象自巨蟹）；'
+      + 'D10 奇宮自本宮起、偶宮自第九宮起；D7 奇宮自本宮起、偶宮自第七宮起。<br><br>'
+      + '本盤與 D9 同座者謂之 <b>vargottama</b>，其力倍之。</div></div>'
+      + '<table><tr><th>曜</th><th>D1 本盤</th><th>D9 婚姻</th><th>D10 事業</th><th>D7 子女</th><th></th></tr>';
     var vgo = 0;
-    [['上升', sidAsc]].concat(rows.map(function (r) { return [r[0], XY.mod(r[1] - ay, 360)]; })).forEach(function (r) {
-      var nv = VD.navamsa(r[1]), d1 = VD.rasiOf(r[1]);
-      var same = (nv.sign === d1); if (same) vgo++;
-      h += '<tr><td class="qi">' + esc(r[0]) + '</td><td class="su">' + esc(d1) + '</td>'
-        + '<td class="su">' + esc(nv.sign) + '<span class="tiny">　第 ' + nv.part + ' 分</span></td>'
+    [['上升', a.asc]].concat(rows).forEach(function (r) {
+      var sl = sid(r[1]), d1 = VD.rasiOf(sl);
+      var n9 = VD.varga(sl, 9), n10 = VD.varga(sl, 10), n7 = VD.varga(sl, 7);
+      var same = (n9.sign === d1); if (same) vgo++;
+      h += '<tr><td class="qi">' + esc(r[0]) + '</td><td class="su" style="font-size:14px">' + esc(d1) + '</td>'
+        + '<td class="su" style="font-size:14px">' + esc(n9.sign) + '<i class="tiny" style="font-style:normal"> ' + n9.part + '</i></td>'
+        + '<td class="su" style="font-size:14px">' + esc(n10.sign) + '<i class="tiny" style="font-style:normal"> ' + n10.part + '</i></td>'
+        + '<td class="su" style="font-size:14px">' + esc(n7.sign) + '<i class="tiny" style="font-style:normal"> ' + n7.part + '</i></td>'
         + '<td class="tiny">' + (same ? '<span class="tag g">vargottama</span>' : '') + '</td></tr>';
     });
-    h += '</table><div class="tiny" style="margin-top:8px">本盤 vargottama 者 ' + vgo + ' 個。</div></div>';
+    h += '</table><div class="tiny" style="margin-top:8px">小字為第幾分。本盤 vargottama 者 ' + vgo + ' 個。</div></div>';
 
-    // Yoga
-    var Z12 = HL.SIGN;
-    var ascSign = VD.rasiOf(sidAsc), ai = Z12.indexOf(ascSign);
+    /* ── 九、Yoga ── */
     var P = { house: {}, sign: {} };
-    rows.forEach(function (r) {
-      var s = XY.mod(r[1] - ay, 360), sg = VD.rasiOf(s);
-      P.sign[r[0]] = sg;
-      P.house[r[0]] = XY.mod(Z12.indexOf(sg) - ai, 12) + 1;
+    ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星'].forEach(function (n) {
+      var r = rows.find(function (x) { return x[0] === n; }); if (!r) return;
+      var sg = VD.rasiOf(sid(r[1]));
+      P.sign[n] = sg; P.house[n] = houseOf(sg);
     });
     var yg = VD.yogas(P);
     h += '<div class="card"><h2>Yoga　行星組合　本盤成立 ' + yg.length + ' 組</h2>'
       + '<div class="tiny" style="margin-bottom:10px">吠陀之「格」。宮位自命宮（上升星座）起算為第一宮，整宮制。'
-      + '本引擎只判條件明確者六組，餘者數以百計且多繫於分盤與運限，不代擬。</div>';
+      + '本引擎只判條件明確者六組，餘者數以百計且多繫於分盤與運限，不代擬。'
+      + 'Kemadruma 之判以七曜為準，羅計不計入（古法如此）。</div>';
     if (yg.length) {
       h += '<table><tr><th>Yoga</th><th>條件</th><th>本盤何以成立</th><th>白話</th></tr>';
       yg.forEach(function (x) {
@@ -4755,17 +5129,21 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     } else h += '<div class="note">本盤於可判之六組中無一成立。</div>';
     h += '<div class="tiny" style="margin-top:8px">上升星座 ' + esc(ascSign) + '（恆星），各曜之宮位由此起算。</div></div>';
 
+    /* ── 十、與他系之別 ── */
     h += '<div class="card"><h2>三系之別（一表看完）</h2><table>'
       + '<tr><th></th><th>希臘古典</th><th>吠陀</th><th>七政四餘</th></tr>'
-      + '<tr><td class="tiny">黃道</td><td class="tiny">回歸（春分點）</td><td class="tiny">恆星</td><td class="tiny">恆星（宿度）</td></tr>'
-      + '<tr><td class="tiny">分天</td><td class="tiny">十二宮等分</td><td class="tiny">十二宮＋二十七宿</td><td class="tiny">十二宮＋二十八宿不等分</td></tr>'
+      + '<tr><td class="tiny">黃道</td><td class="tiny">回歸（春分點）</td><td class="tiny">恆星（Lahiri）</td><td class="tiny">恆星（宿度）</td></tr>'
+      + '<tr><td class="tiny">分天</td><td class="tiny">十二宮等分</td><td class="tiny">十二宮等分＋二十七宿</td><td class="tiny">十二宮＋二十八宿不等分</td></tr>'
+      + '<tr><td class="tiny">第一宮</td><td class="tiny">上升點所在宮</td><td class="tiny">上升點所在恆星宮</td><td class="tiny">太陽所在宮加生時逆退</td></tr>'
       + '<tr><td class="tiny">分宮</td><td class="tiny">整宮制</td><td class="tiny">整宮制</td><td class="tiny">宿度制</td></tr>'
-      + '<tr><td class="tiny">強弱</td><td class="tiny">尊貴五等計分</td><td class="tiny">廟旺與宿主</td><td class="tiny">廟旺喜樂殿垣・五行生剋</td></tr>'
-      + '<tr><td class="tiny">關係</td><td class="tiny">托勒密相位（容許度依星）</td><td class="tiny">互視（單向）</td><td class="tiny">同宮拱夾照沖・生剋</td></tr>'
-      + '<tr><td class="tiny">推運</td><td class="tiny">小限（年）・法達</td><td class="tiny">Vimshottari 大運</td><td class="tiny">宮限・倒限</td></tr>'
+      + '<tr><td class="tiny">強弱</td><td class="tiny">尊貴五等計分（廟旺三分界面）</td><td class="tiny">旺弱本宮根本三角＋友敵＋燃燒</td><td class="tiny">廟旺喜樂殿垣・五行生剋</td></tr>'
+      + '<tr><td class="tiny">關係</td><td class="tiny">托勒密相位（雙向・容許度依星）</td><td class="tiny">互視（單向・整宮）</td><td class="tiny">同宮拱夾照沖・生剋</td></tr>'
+      + '<tr><td class="tiny">推運</td><td class="tiny">小限・法達</td><td class="tiny">Vimshottari 大運＋Antardaśā</td><td class="tiny">宮限・倒限</td></tr>'
+      + '<tr><td class="tiny">分盤</td><td class="tiny">無</td><td class="tiny">D9・D10・D7</td><td class="tiny">無</td></tr>'
       + '<tr><td class="tiny">神煞</td><td class="tiny">無</td><td class="tiny">少（Yoga 為主）</td><td class="tiny">五十八種</td></tr>'
       + '</table><div class="tiny" style="margin-top:8px">'
-      + '希臘之硬傷在回歸黃道已與實際星群脫節，且無月宿一層；'
+      + '三者之十二宮同名而不同物——起點不同、座標不同、宮義不同，'
+      + '<b>本引擎絕不把它們畫在同一張盤上</b>。希臘之硬傷在回歸黃道已與實際星群脫節，且無月宿一層；'
       + '吠陀與七政用恆星黃道而天文較實，然七政之神煞層則已離天象頗遠。三者各有所長，不必強分高下。</div></div>';
     $('outXiV').innerHTML = h;
   }
@@ -4814,7 +5192,10 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
      ['吠陀', 'var(--lv)', '印度傳統。用<b>恆星黃道</b>（扣掉歲差），天文上較實。'
       + '與宿曜同源（皆二十七宿），惟宿曜傳入中國後另立曆日推法，吠陀始終取真實月位。'
       + '最強處是<b>時間推算</b>——Vimshottari 大運九曜輪值合一百二十年，'
-      + '起運已走年數由月亮在該宿內的比例定，能推到年月。另有九分盤 D9 與行星互視。',
+      + '起運已走年數由月亮在該宿內的比例定，其下再分九段 Antardaśā，能推到年月。<br><br>'
+      + '另有整宮制的十二宮（自上升點所在恆星星座起）、羅計、廟旺與自然友敵、燃燒、'
+      + '單向的行星互視，以及分盤 D9 婚姻・D10 事業・D7 子女。'
+      + '<b>吠陀的十二宮與七政的十二宮不是同一件事</b>，故各有各的盤，本引擎不疊看。',
       '吠陀']].forEach(function (s) {
       h += '<details class="item"><summary><span class="isu" style="font-size:17px;color:' + s[1] + '">'
         + esc(s[0]) + '</span><span class="ihint">見「' + esc(s[3]) + '」分頁</span></summary>'
@@ -4831,7 +5212,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 177 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 187 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
@@ -4852,7 +5233,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<tr><td class="su" style="color:var(--jin2)">星盤</td><td class="tiny">七政：十一曜位置、神煞、化曜、格局、宿度四軌</td></tr>'
       + '<tr><td class="su" style="color:var(--jin2)">行限</td><td class="tiny">七政：宮限與倒限二法並列</td></tr>'
       + '<tr><td class="su" style="color:var(--shi2)">希臘</td><td class="tiny">尊貴量表、托勒密相位、光線傳遞、小限、法達星限</td></tr>'
-      + '<tr><td class="su" style="color:var(--lv)">吠陀</td><td class="tiny">月宿、Vimshottari 大運、九分盤 D9、Yoga、行星互視</td></tr>'
+      + '<tr><td class="su" style="color:var(--lv)">吠陀</td><td class="tiny">Rāśi 盤（南印方形）、曜位與宿主、十二宮、月宿、大運與 Antardaśā、廟旺友敵燃燒、互視實判、D9 D10 D7、Yoga</td></tr>'
       + '<tr><td class="su">環圖</td><td class="tiny">兩套宿畫在同一個圓上，看它們為何給出不同答案</td></tr>'
       + '<tr><td class="su">查表</td><td class="tiny">不必先算生辰，直接查任何一宿、任何一宮、三垣</td></tr>'
       + '<tr><td class="su">文獻</td><td class="tiny">底本、校記、算法所據、開機自檢。分宿曜與七政兩頁</td></tr>'
@@ -5132,7 +5513,8 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     try { renderRi(); } catch (e) { }
     try { renderXian(); } catch (e) { }
   })();
-  window.FUSION = { selfCheckXY: selfCheckXY, selfCheckQZ: selfCheckQZ, selfCheckMerge: selfCheckMerge };
+  window.FUSION = { selfCheckXY: selfCheckXY, selfCheckQZ: selfCheckQZ, selfCheckMerge: selfCheckMerge,
+    runAll: runAll };
 })();
 
 </script>
