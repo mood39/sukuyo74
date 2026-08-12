@@ -114,6 +114,14 @@ svg{display:block;width:100%;height:auto}
 .vcell .vp span.vnode{color:var(--zhu)}
 .vcell .vp em{font-style:normal;font-size:10px;margin-left:1px;color:var(--lv)}
 .vcell .vp em.vbad{color:var(--zhu)}
+/* 白話中的關鍵名詞＝盤面同規格（字型・顏色）。吠陀綠系、希臘石青系，不共用 */
+.kv-sign{font-family:var(--serif);color:var(--lv);font-size:1.06em}
+.kv-yao{font-family:var(--serif);color:var(--juan);font-size:1.06em}
+.kv-node{font-family:var(--serif);color:var(--zhu);font-size:1.06em}
+.kv-house{font-family:var(--serif);color:var(--lv)}
+.kh-sign{font-family:var(--serif);color:var(--shi2);font-size:1.06em}
+.kh-yao{font-family:var(--serif);color:var(--juan);font-size:1.06em}
+.kh-house{font-family:var(--serif);color:var(--shi2)}
 .hsec{cursor:pointer}
 .hsec:hover{fill:rgba(94,144,174,.14)}
 .hdetail{background:var(--gan2);border:1px solid rgba(94,144,174,.30);border-radius:2px;padding:14px 16px;margin-top:12px}
@@ -4858,7 +4866,21 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           });
           d += '<div class="tiny">各曜在此宮之完整歌訣與原文，見「星盤」分頁。</div>';
         } else {
-          d += '<div class="tiny">本盤無曜落於此宮。原書云「各宮一星」為常，空宮則看其宮主所落之處。</div>';
+          var Y2NP = { 日: '太陽', 月: '太陰', 木: '木星', 火: '火星', 土: '土星', 金: '金星', 水: '水星' };
+          var zn = Y2NP[c.zhu] || c.zhu;
+          var zr = rows.find(function (x) { return x[0] === zn; });
+          var zz = null, zg = null;
+          if (zr) g12.forEach(function (x) { if (XY.mod(zr[1] - x.ra, 360) * (365.25 / 360) < x.w) { zz = x.zhi; zg = x.gong; } });
+          var zgong = zz ? (function () { for (var q in cells) if (q === zz) return cells[q].gong; return null; })() : null;
+          d += '<div class="bai"><b>本盤無曜落於此宮。</b>原書云「各宮一星」為常，'
+            + '空宮則<b>逕看其宮主所落之處</b>——不是無事可斷。<br><br>'
+            + '此宮宮主為 ' + cy(c.zhu) + '（' + esc(zn) + '），'
+            + (zz ? '現落在 <b>' + esc(zz) + '</b> 宮'
+                + (zgong ? '，即本盤之 <b>' + esc(zgong) + '</b> 宮' : '')
+                + '（' + esc(zg) + '）。<br>亦即：<b>' + esc(c.gong) + '</b> 之事，'
+                + (zgong ? '繫於 <b>' + esc(zgong) + '</b> 之事。' : '繫於該宮之事。')
+              : '本盤未列此曜。')
+            + '</div>';
         }
         $('panDetail').innerHTML = d;
       });
@@ -4983,29 +5005,39 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     h += '<div id="hDetail" class="hdetail"><div class="tiny">點上方任一宮，此處顯示該宮之白話。</div></div>';
     h += '</div>';
 
-    /* 各宮之白話——先結果、後細節，末尾指路 */
+    /* 各宮之白話——先結果、後細節，末尾指路。關鍵名詞與盤面同規格 */
+    function gS(x) { return '<span class="kh-sign">' + esc(x) + '</span>'; }
+    function gY(n) { return '<span class="kh-yao">' + esc(n) + '</span>'; }
+    function gH(n) { return '<span class="kh-house">' + CNH[n - 1] + '宮 ' + esc(HL.TOPOS[n - 1].gr)
+      + ' ' + esc(HL.TOPOS[n - 1].cn) + '</span>'; }
+    function gD(n) {   // 尊貴標記，與盤面同色
+      var x = dig[n];
+      return (x.list.length ? '<span class="tag ' + (x.list[0].v > 0 ? 'g' : 'r') + '">' + esc(x.list[0].k) + '</span>'
+        : '<span class="tiny" style="color:var(--mu)">外人</span>')
+        + '<span class="tiny">　尊貴 ' + (x.score > 0 ? '+' : '') + x.score + '</span>';
+    }
     var hDet = {};
     for (var q = 0; q < 12; q++) {
       var hs2 = q + 1, sg3 = HL.SIGN[XY.mod(ai + q, 12)], tp2 = HL.TOPOS[q], ld = HL.DOM[sg3];
-      var lh = houseOf(HL.signOf(lonOf[ld]));
+      var lh = houseOf(HL.signOf(lonOf[ld])), lsg = HL.signOf(lonOf[ld]);
       var d = '<h3>' + CNH[q] + '宮　' + esc(tp2.gr) + ' ' + esc(tp2.cn)
         + '<span class="tiny" style="color:var(--mu)">　' + esc(sg3) + (hs2 === 1 ? '　Hōroskopos' : '') + '</span></h3>';
       d += '<div class="bai">' + esc(tp2.bai) + '</div>';
       d += '<h4>這一宮由誰管，那位現在在哪</h4><div class="bai">'
-        + '這一宮是 <b>' + esc(sg3) + '</b>，其廟主為 <b>' + esc(ld) + '</b>——'
-        + '<b>宮主落在哪一宮，這一宮的事就往哪裡去</b>，這是希臘讀盤與吠陀共通的主軸。<br>'
-        + esc(ld) + ' 落在<b>第 ' + lh + ' 宮</b>（' + esc(HL.TOPOS[lh - 1].gr) + ' ' + esc(HL.TOPOS[lh - 1].cn) + '）——'
-        + esc(HL.TOPOS[lh - 1].bai)
-        + '<br>亦即：' + esc(tp2.cn) + '之事，繫於' + esc(HL.TOPOS[lh - 1].cn) + '之事。'
-        + '<br><br>此外，' + esc(ld) + ' 自身的尊貴為 <b>' + (dig[ld].score > 0 ? '+' : '') + dig[ld].score
-        + '</b>，' + esc(HL.hairesis(ld, isDay, sunL, lonOf[ld]) || '') + '——'
-        + '<b>宮主愈強，這一宮的事愈辦得動。</b></div>';
+        + '這一宮是 ' + gS(sg3) + '，其廟主為 ' + gY(ld) + '——'
+        + '<b>宮主落在哪一宮，這一宮的事就往哪裡去</b>，這是希臘讀盤與吠陀共通的主軸。<br><br>'
+        + '本盤 ' + gY(ld) + ' 落在 ' + gH(lh) + '（' + gS(lsg) + '），在那裡是 ' + gD(ld)
+        + '，' + esc(HL.hairesis(ld, isDay, sunL, lonOf[ld]) || '') + '。<br>'
+        + esc(HL.TOPOS[lh - 1].bai) + '<br>'
+        + '亦即：<b>' + esc(tp2.cn) + '之事，繫於' + esc(HL.TOPOS[lh - 1].cn) + '之事。</b>'
+        + (hs2 === lh ? '（宮主自守本宮，其事自足，不假外求。）' : '')
+        + '<br><br><b>宮主愈強，這一宮的事愈辦得動</b>——這是希臘看一宮成敗的第一步。</div>';
       var here = atSign[sg3] || [];
       if (here.length) {
         d += '<h4>落在這一宮的曜</h4>';
         here.forEach(function (n) {
           var g = HL.THEOI[n] || ['', ''], dg2 = dig[n], hr = HL.hairesis(n, isDay, sunL, lonOf[n]);
-          d += '<div class="bai" style="margin-bottom:8px"><b>' + esc(n) + '</b>'
+          d += '<div class="bai" style="margin-bottom:8px">' + gY(n)
             + '<span class="tiny" style="color:var(--mu)">　' + esc(g[0]) + '</span><br>' + esc(g[1]) + '<br>'
             + '在這一宮：'
             + (dg2.list.length ? dg2.list.map(function (x) {
@@ -5017,19 +5049,25 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
             + '</div>';
         });
       } else {
-        d += '<h4>落在這一宮的曜</h4><div class="bai">無曜落此。'
-          + '<b>空宮不等於此事空</b>——看它的宮主落在哪裡即可，古典如此。</div>';
+        d += '<h4>落在這一宮的曜</h4><div class="bai">'
+          + '<b>無曜落此。</b>空宮不等於此事空——古典此時逕看宮主，答案即在上一段：<br><br>'
+          + '此宮之主 ' + gY(ld) + ' 現在 ' + gH(lh) + '（' + gS(lsg) + '），在那裡是 ' + gD(ld) + '。'
+          + '所以 <b>' + esc(tp2.cn) + '</b> 之事不由本宮自發，而由 <b>' + esc(HL.TOPOS[lh - 1].cn) + '</b> 那邊帶動——'
+          + esc(HL.TOPOS[lh - 1].bai)
+          + '<br><br>另看有沒有曜以相位照過來（下一段），若有，此宮仍受其影響。'
+          + '</div>';
       }
       var seen = [];
       rows.forEach(function (r) {
         var dd = XY.mod(HL.SIGN.indexOf(sg3) - HL.SIGN.indexOf(HL.signOf(r[1])), 12) + 1;
-        var asp = HL.wholeAspect(dd);
-        if (asp && dd !== 1) seen.push(r[0] + '（' + asp + '）');
+        var asp0 = HL.wholeAspect(dd);
+        if (asp0 && dd !== 1) seen.push(gY(r[0]) + '<span class="tiny" style="color:var(--mu)">（' + asp0 + '）</span>');
       });
       d += '<h4>誰與這一宮成相</h4><div class="bai">'
-        + (seen.length ? esc(seen.join('、')) + '。<br>此為<b>整宮相位</b>——古典先論星座之間成不成相，再看度數之遠近。'
-            + '度數相位見下方「托勒密相位」表。'
-          : '本盤無曜與此宮成整宮相位。')
+        + (seen.length ? seen.join('、') + '。<br>此為<b>整宮相位</b>——古典先論星座之間成不成相，再看度數之遠近；'
+            + '度數相位見下方「明細二」。'
+          : '本盤無曜與此宮成整宮相位'
+            + (here.length ? '。' : '——既無曜坐、亦無曜照，此宮之事全繫於宮主 ' + gY(ld) + ' 之所在。'))
         + '</div>';
       d += '<div class="tiny" style="margin-top:10px">度數、界主與面主、相位差值、小限與法達全表，'
         + '皆在本頁下方——盤上只放結果，過程不上盤。</div>';
@@ -5269,22 +5307,31 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<span style="color:var(--zhu)">弱・燃燒</span>為弱，無小字者不強不弱。</div>';
     h += '<div id="vDetail" class="vdetail"><div class="tiny">點上方任一宮，此處顯示該宮之白話。</div></div>';
     h += '</div>';
-    /* 各宮之白話——先結果、後細節，末尾指路 */
+    /* 各宮之白話——先結果、後細節，末尾指路。關鍵名詞與盤面同規格 */
+    function kS(x) { return '<span class="kv-sign">' + esc(x) + '</span>'; }
+    function kY(n) { return '<span class="' + ((n === '羅睺' || n === '計都') ? 'kv-node' : 'kv-yao') + '">' + esc(n) + '</span>'; }
+    function kH(n) { return '<span class="kv-house">' + CNH[n - 1] + '宮 ' + esc(VD.BHAVA[n - 1].sa)
+      + ' ' + esc(VD.BHAVA[n - 1].cn) + '</span>'; }
+    function kB(n) {   // 曜之強弱標記，與盤面同色
+      var b = VD.bala(n, lonOf[n]);
+      if (b.list.length) return '<span class="tag ' + (b.list[0].v > 0 ? 'g' : 'r') + '">' + esc(b.list[0].k) + '</span>';
+      if (VD.combust(n, lonOf[n], sidSun)) return '<span class="tag r">燃燒</span>';
+      return '<span class="tiny" style="color:var(--mu)">不強不弱</span>';
+    }
     var vDet = {};
     VD.RASI.forEach(function (sg) {
       var hs = houseOf(sg), bv = VD.BHAVA[hs - 1], ld = VD.DOMV[sg];
-      var lr = rows.find(function (x) { return x[0] === ld; });
-      var lh = lr ? houseOf(VD.rasiOf(lonOf[ld])) : null;
+      var lh = houseOf(VD.rasiOf(lonOf[ld])), lsg = VD.rasiOf(lonOf[ld]);
       var d = '<h3>' + CNH[hs - 1] + '宮　' + esc(bv.sa) + ' ' + esc(bv.cn)
         + '<span class="tiny" style="color:var(--mu)">　' + esc(sg) + (hs === 1 ? '　Lagna' : '') + '</span></h3>';
       d += '<div class="bai">' + esc(bv.bai) + '</div>';
       d += '<h4>這一宮由誰管，那位現在在哪</h4><div class="bai">'
-        + '這一宮是 <b>' + esc(sg) + '</b>，其主星為 <b>' + esc(ld) + '</b>——'
-        + '<b>宮主落在哪一宮，這一宮的事就往哪裡去</b>，這是吠陀讀盤的主軸。<br>'
-        + (lh ? '本盤 ' + esc(ld) + ' 落在<b>第 ' + lh + ' 宮</b>（' + esc(VD.BHAVA[lh - 1].sa) + ' '
-            + esc(VD.BHAVA[lh - 1].cn) + '）——' + esc(VD.BHAVA[lh - 1].bai)
-            + '<br>亦即：' + esc(bv.cn) + '之事，繫於' + esc(VD.BHAVA[lh - 1].cn) + '之事。'
-          : '本盤未列此曜。')
+        + '這一宮是 ' + kS(sg) + '，其主星為 ' + kY(ld) + '——'
+        + '<b>宮主落在哪一宮，這一宮的事就往哪裡去</b>，這是吠陀讀盤的主軸。<br><br>'
+        + '本盤 ' + kY(ld) + ' 落在 ' + kH(lh) + '（' + kS(lsg) + '），在那裡是 ' + kB(ld) + '。<br>'
+        + esc(VD.BHAVA[lh - 1].bai) + '<br>'
+        + '亦即：<b>' + esc(bv.cn) + '之事，繫於' + esc(VD.BHAVA[lh - 1].cn) + '之事。</b>'
+        + (hs === lh ? '（宮主自守本宮，其事自足，不假外求。）' : '')
         + '</div>';
       var here = atSign[sg] || [];
       if (here.length) {
@@ -5292,30 +5339,37 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         here.forEach(function (n) {
           var g = VD.GRAHA[n] || ['', ''], b = VD.bala(n, lonOf[n]);
           var rel = VD.maitri(n, ld), cb = VD.combust(n, lonOf[n], sidSun);
-          d += '<div class="bai" style="margin-bottom:8px"><b>' + esc(n) + '</b>'
+          d += '<div class="bai" style="margin-bottom:8px">' + kY(n)
             + '<span class="tiny" style="color:var(--mu)">　' + esc(g[0]) + '</span><br>' + esc(g[1]) + '<br>'
             + '在這一宮：'
             + (b.list.length ? b.list.map(function (x) {
                 return '<span class="tag ' + (x.v > 0 ? 'g' : 'r') + '">' + esc(x.k) + '</span>'; }).join('')
               : '<span style="color:var(--mu)">不強不弱（旅居）</span>')
             + (n === ld ? '　<span class="tag g">自為宮主</span>'
-              : (rel ? '　與宮主 ' + esc(ld) + ' 為<span class="tag ' + (rel === '友' ? 'g' : rel === '敵' ? 'r' : '') + '">'
+              : (rel ? '　與宮主 ' + kY(ld) + ' 為<span class="tag ' + (rel === '友' ? 'g' : rel === '敵' ? 'r' : '') + '">'
                   + rel + '</span>' : ''))
             + (cb ? '　<span class="tag r">被太陽燒到</span>力減' : '')
             + '</div>';
         });
       } else {
-        d += '<h4>落在這一宮的曜</h4><div class="bai">無曜落此。'
-          + '<b>空宮不等於此事空</b>——看它的宮主落在哪裡即可，古法如此。</div>';
+        d += '<h4>落在這一宮的曜</h4><div class="bai">'
+          + '<b>無曜落此。</b>空宮不等於此事空——古法此時逕看宮主，答案即在上一段：<br><br>'
+          + '此宮之主 ' + kY(ld) + ' 現在 ' + kH(lh) + '（' + kS(lsg) + '），在那裡是 ' + kB(ld) + '。'
+          + '所以 <b>' + esc(bv.cn) + '</b> 之事不由本宮自發，而由 <b>' + esc(VD.BHAVA[lh - 1].cn) + '</b> 那邊帶動——'
+          + esc(VD.BHAVA[lh - 1].bai)
+          + '<br><br>另看有沒有曜從別宮望過來（下一段），若有，此宮仍受其影響。'
+          + '</div>';
       }
       var seen = [];
       rows.forEach(function (r) {
         var dd = XY.mod(VD.RASI.indexOf(sg) - VD.RASI.indexOf(VD.rasiOf(lonOf[r[0]])), 12) + 1;
-        if (VD.drishti(r[0]).indexOf(dd) >= 0) seen.push(r[0] + '（其第 ' + dd + ' 宮）');
+        if (VD.drishti(r[0]).indexOf(dd) >= 0)
+          seen.push(kY(r[0]) + '<span class="tiny" style="color:var(--mu)">（自其第 ' + dd + ' 宮望來）</span>');
       });
       d += '<h4>誰在看這一宮</h4><div class="bai">'
-        + (seen.length ? esc(seen.join('、')) + '。<br>吠陀之互視是<b>單向</b>的——這些曜影響此宮，此宮之曜未必回望它們。'
-          : '本盤無曜視此宮。')
+        + (seen.length ? seen.join('、') + '。<br>吠陀之互視是<b>單向</b>的——這些曜影響此宮，此宮之曜未必回望它們。'
+          : '本盤無曜視此宮'
+            + (here.length ? '。' : '——既無曜坐、亦無曜望，此宮之事全繫於宮主 ' + kY(ld) + ' 之所在。'))
         + '</div>';
       d += '<div class="tiny" style="margin-top:10px">度數、所躔之宿與宿主、分盤 D9 D10 D7、'
         + '大運與互視全表，皆在本頁下方——盤上只放結果，過程不上盤。</div>';
