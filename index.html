@@ -93,6 +93,9 @@ svg{display:block;width:100%;height:auto}
 .pancell .ps em{font-style:normal;color:var(--zhu);margin-right:5px}
 .pancell .ps q{quotes:none;color:var(--lv);margin-right:5px}
 .pancell .ps b{color:var(--lv);font-weight:400}
+.pancell.pxian{border-color:rgba(200,164,77,.75);box-shadow:inset 0 0 0 1px rgba(200,164,77,.35)}
+.pancell .pw span em{font-style:normal;font-size:10px;margin-left:1px;color:var(--lv)}
+.pancell .pw span em.pbad{color:var(--zhu)}
 .pancell .pj{font-size:10px;margin-top:3px;line-height:1.6}
 .pancell .pj span{display:inline-block;background:rgba(200,164,77,.18);color:var(--jin2);
   border:1px solid rgba(200,164,77,.42);border-radius:2px;padding:0 4px;margin-right:3px}
@@ -112,6 +115,10 @@ svg{display:block;width:100%;height:auto}
 .vcell .vs{font-family:var(--serif);font-size:13px;color:var(--lv);letter-spacing:.06em}
 .vcell .vs u{text-decoration:none;font-size:10px;background:var(--lv);color:#10241A;padding:1px 4px;border-radius:2px;margin-left:4px}
 .vcell .vh{display:block;font-size:10.5px;color:var(--mu);margin-top:2px;line-height:1.45}
+.vcell .vl{font-size:10.5px;color:var(--mu);margin-top:3px;font-family:var(--serif)}
+.vcell .vl b{color:var(--lv);font-weight:400}
+.vcell.vdasha{border-color:rgba(200,164,77,.7);background:rgba(200,164,77,.10)}
+.vcell .vs u.vdu{background:var(--jin);color:#14203A}
 .vcell .vp{font-size:13px;line-height:1.75;color:var(--juan);margin-top:5px}
 .vcell .vp span{display:inline-block;margin-right:7px;color:var(--juan);font-family:var(--serif)}
 .vcell .vp span.vnode{color:var(--zhu)}
@@ -2407,6 +2414,18 @@ var HL = (function (XY) {
     var s = SIGN[XY.mod(i + XY.mod(age, 12), 12)];
     return { sign: s, house: XY.mod(age, 12) + 1, lord: DOM[s] };
   }
+  /* ── 燃燒與日下 Combustion / Under the Beams / Cazimi —— Lilly《Christian Astrology》一系
+     合日 17′ 之內為「日心」（在日之心，反主大吉）；8.5° 之內為「燃燒」（力大減）；
+     17° 之內為「日下」（力減）。太陽自身不論。此層與尊貴各自獨立，不併入計分。 */
+  var G_CAZIMI = 17 / 60, G_COMBUST = 8.5, G_BEAMS = 17;
+  function underSun(yao, lon, sunLon) {
+    if (yao === '太陽') return null;
+    var d = Math.abs(XY.mod(lon - sunLon + 180, 360) - 180);
+    if (d <= G_CAZIMI) return { k: '日心', w: 'Cazimi', v: 1, d: d };
+    if (d <= G_COMBUST) return { k: '燃燒', w: 'Combust', v: -1, d: d };
+    if (d <= G_BEAMS) return { k: '日下', w: 'Under the Beams', v: -1, d: d };
+    return null;
+  }
   /* ── 十二宮 Topos：希臘古典之宮名（Valens・Paulus 一系），中譯取其常用義 */
   var TOPOS = [
     { gr: 'Hōroskopos', cn: '命', bai: '時標——你這個人本身：體格、性情、一生的舵。希臘讀盤自此起算，其餘十一宮皆由此定序。' },
@@ -2455,6 +2474,7 @@ var HL = (function (XY) {
     TERM: TERM, ORB: ORB, ASP: ASP, det: det, face: face, dignity: dignity, aspects: aspects,
     profection: profection, signOf: signOf,
     TOPOS: TOPOS, THEOI: THEOI, hairesis: hairesis, wholeAspect: wholeAspect,
+    G_CAZIMI: G_CAZIMI, G_COMBUST: G_COMBUST, G_BEAMS: G_BEAMS, underSun: underSun,
     FIRD_D: FIRD_D, FIRD_N: FIRD_N, SPEED: SPEED, firdaria: firdaria, translation: translation };
 })(XY);
 
@@ -4349,6 +4369,31 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       var jie = XY.norm360(SY.trueNode(T) + 180), bo = XY.norm360(SY.meanPerigee(T) + 180);
       return Math.abs(XY.mod(jie - bo + 180, 360) - 180) > 5;
     })(), '七政說（降交點）與宿曜說（遠地點）相距逾五度');
+    ok('命盤之曜強弱四層皆出自既有模組，未另立判準', (function () {
+      return MWG.check('土星', '丑').indexOf('入廟') >= 0
+        && MW.check('太陽', '奎', 10).length > 0
+        && JW.jing('木星', '角', '寅').kind === '殿垣俱得'
+        && WS.judge('木星', 0).kind === '旺'
+        && !JW.jing('木星', '虛', '子').ok;
+    })(), '廟旺五表・正廟度・經緯殿垣・四時衰旺；盤面取最要緊者一項，全表仍在星盤');
+    ok('度主取法與星盤同：宿之七曜配屬（角木・亢金・氐土・房日）', (function () {
+      return AM.duZhu('角') === '木' && AM.duZhu('亢') === '金'
+        && AM.duZhu('氐') === '土' && AM.duZhu('房') === '日';
+    })(), '原書「度主為要，宮主次之」，故命盤宮主度主並列');
+    ok('現行行限宮與小限宮由行限分頁同一函式取得', (function () {
+      var a = XX.gongLimit(1), b = XX.gongLimit(16);
+      return a.gong === '命' && b.gong === '相貌' && XX.xiaoxian(0) === 0 && XX.xiaoxian(12) === 0;
+    })(), '命15 相貌10——行限之分年歌訣，兩頁同源');
+    ok('希臘燃燒三層階序正確（日心 17′・燃燒 8.5°・日下 17°），太陽自身不論', (function () {
+      var c1 = HL.underSun('金星', 0.2, 0), c2 = HL.underSun('金星', 5, 0),
+          c3 = HL.underSun('金星', 12, 0), c4 = HL.underSun('金星', 20, 0);
+      return c1 && c1.k === '日心' && c1.v > 0 && c2 && c2.k === '燃燒' && c3 && c3.k === '日下'
+        && c4 === null && HL.underSun('太陽', 0, 0) === null
+        && HL.G_CAZIMI < HL.G_COMBUST && HL.G_COMBUST < HL.G_BEAMS;
+    })(), 'v45 新增之判準（Lilly 一系），與尊貴各自獨立、不併入計分');
+    ok('vargottama 判定：D1 與 D9 同座（牡羊 0° 為是、金牛 0° 為非）', (function () {
+      return VD.varga(0, 9).sign === VD.rasiOf(0) && VD.varga(30, 9).sign !== VD.rasiOf(30);
+    })(), '盤上以「倍」標之，其力倍之');
     ok('命盤所引之卦氣與唐符落宮，與星盤同源同值（不另立座標）', (function () {
       var g = GQI.guaqi('甲'), f = (DZ.byGan('甲').filter(function (x) { return x.name === '飛刃'; })[0] || {}).zhi;
       return g && g.zhi === '亥' && f === '酉' && GQI.TANGFU.same === '飛刃'
@@ -4610,10 +4655,37 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         .map(function (r) { return r[0]; });
       var gz = AM.GONGZHU[z], wx = { 木: '木', 火: '火', 土: '土', 金: '金', 水: '水' }[gz];
       cells[z] = { gong: gname, zhi: z, ci: gg.gong, zhu: gz, who: who,
+        du: AM.duZhu(suOfRa(tbl, gg.ra).su), dusu: suOfRa(tbl, gg.ra).su,
         sha: SS.shaOf(z).map(function (s) { return s.name; }),
         ji: [], xiong: [],
         stage: wx ? SS.stageOf(wx, z) : null };
     });
+    /* 曜之強弱——四層併為一個標記，取最要緊者。四層皆既有模組，不另立判準：
+       ①廟旺五表 MWG（依地支）②正廟度 MW（依宿度）③經緯殿垣 JW（本殿本垣）④四時衰旺 WS（依節令） */
+    var YMAPP = { 太陽: '太陽', 太陰: '太陰', 木星: '歲星', 火星: '熒惑', 土星: '鎮星', 金星: '太白',
+      水星: '辰星', 紫氣: '紫氣', 月孛: '月孛', 羅睺: '羅喉', 計都: '計都' };
+    function zhiOfYao(nm) {
+      var rr = rows.filter(function (x) { return x[0] === nm; })[0]; if (!rr) return null;
+      var zz = null; g12.forEach(function (x) { if (XY.mod(rr[1] - x.ra, 360) * (365.25 / 360) < x.w) zz = x.zhi; });
+      return zz;
+    }
+    function yaoMark(nm) {
+      var rr = rows.filter(function (x) { return x[0] === nm; })[0]; if (!rr) return null;
+      var zz = zhiOfYao(nm), su = suOfRa(tbl, rr[1]);
+      var m1 = zz ? MWG.check(nm, zz) : [];
+      if (m1.indexOf('入廟') >= 0) return { t: '入廟', bad: false, src: '廟旺五表' };
+      var m2 = MW.check(YMAPP[nm] || nm, su.su, su.deg);
+      if (m2.length) return { t: m2[0].kind, bad: false, src: '正廟度' };
+      if (m1.indexOf('乘旺') >= 0) return { t: '乘旺', bad: false, src: '廟旺五表' };
+      var jj = JW.jing(nm, su.su, zz);
+      if (jj.ok) return { t: jj.kind, bad: false, src: '經緯殿垣' };
+      if (m1.length) return { t: m1[0], bad: false, src: '廟旺五表' };
+      var ws = WS.judge(nm, sunLam);
+      if (ws && ws.kind === '旺') return { t: '時旺', bad: false, src: '四時衰旺' };
+      if (ws && ws.kind === '衰') return { t: '時衰', bad: true, src: '四時衰旺' };
+      if (!jj.ok && JW.DIAN[nm]) return { t: '失經', bad: true, src: '經緯殿垣' };
+      return null;
+    }
     // 神煞落宮（年干八＋年支二十八＋補位二十二，共五十八）
     (function () {
       var JI = { 祿勳: 1, 國印: 1, 天乙: 1, 玉堂: 1, 文昌: 1, 天廚: 1, 天馬: 1, 地驛: 1, 爵星: 1, 歲駕: 1, 月德: 1, 天德: 1 };
@@ -4662,15 +4734,20 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         rolePut(sy3.天經地緯.wei.yao, '地緯', sy3.天經地緯.how, '天經地緯');
       }
     }
-    // 行限：各宮所主之歲數
+    // 行限：各宮所主之歲數，並定本年所行之宮（大限）與小限之宮
     var acc = 0, ages = {};
     XX.SEQ.forEach(function (g) { var yy = XX.yearsOf(g); ages[g] = [acc + 1, acc + yy, XX.UNKNOWN.indexOf(g) >= 0]; acc += yy; });
+    var qyP = parseDate($('qdate').value, todayYMD()).y;
+    var ageP = XX.ageOf(v.y, qyP);
+    var nowGong = (ageP >= 1) ? XX.gongLimit(ageP).gong : null;
+    var xiaoGong = (ageP >= 1) ? ZG.GONG12[XX.xiaoxian(ageP)] : null;
 
     var h = '<div class="plain"><div class="ph">白話說明 · 這一頁怎麼看</div><div class="pb">'
       + '這是把「星盤」與「行限」兩頁的資料，攤成一張<b>十二宮位圖</b>——三套資料共用同一根軸：<b>地支</b>。<br><br>'
       + '每格由上到下是：<b>宮名</b>（這一宮管什麼）／<b>地支・十二次・宮主</b>（這一宮的位置與主星）／'
-      + '<b>本盤</b>（哪些曜落在這裡）／<b>神煞與長生</b>／<b>傳承層之標記</b>（卦氣・唐符・天馬・地驛）／'
-      + '<b>行限歲數</b>（幾歲到幾歲走這一宮）。<br><br>'
+      + '<b>地支・十二次・宮主・度主</b>／<b>本盤</b>（哪些曜落在這裡，及其強弱）／<b>神煞與長生</b>／'
+      + '<b>傳承層之標記</b>（卦氣・唐符・天馬・地驛）／<b>行限歲數</b>（幾歲到幾歲走這一宮）。<br><br>'
+      + '原書說看命「<b>度主為要，宮主次之</b>」——宮如州郡、度如縣邑，縣近而州遠，故兩者並列。<br><br>'
       + '<b>點任一格</b>，下方就顯示該宮與其中各曜的白話簡述。'
       + '此頁為速覽，措辭經簡化；原文一字未改，全在「星盤」與「行限」兩頁。</div></div>';
     h += '<div class="card"><h2>命盤</h2><div class="pangrid">';
@@ -4685,17 +4762,24 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
             + '<div class="pcs">命宮在 <b>' + esc(mz) + '</b></div>'
             + '<div class="pcs">太陽在 ' + esc(sunG.zhi) + ' 宮・生時 ' + esc(shi) + '</div>'
             + '<div class="pcs">' + esc(yGan + yZhi) + '年　卦氣在 <b>' + esc(guaQ ? guaQ.zhi : '—') + '</b> 宮</div>'
+            + (nowGong ? '<div class="pcs">' + qyP + ' 年　行限 <b>' + esc(nowGong) + '</b> 宮'
+                + (xiaoGong ? '　小限 <b>' + esc(xiaoGong) + '</b> 宮' : '') + '</div>' : '')
             + '<div class="pct">命宮＝太陽所在宮，自卯時起每時辰逆退一宮<br>'
             + '鬥杓：' + esc(douB.jie) + '，斗柄指 <b>' + esc(douB.zhi) + '</b>——依節氣而非定盤，故全盤一值、不落宮</div></div>';
           return;
         }
         var c = cells[z], ag = ages[c.gong];
-        h += '<div class="pancell' + (z === mz ? ' pmain' : '') + '" data-z="' + z + '">'
-          + '<div class="pg">' + esc(c.gong) + (z === mz ? '<span class="pbadge">命</span>' : '') + '</div>'
-          + '<div class="pz">' + esc(z) + '　' + esc(c.ci) + '　主' + esc(c.zhu) + '</div>'
+        h += '<div class="pancell' + (z === mz ? ' pmain' : '') + (c.gong === nowGong ? ' pxian' : '') + '" data-z="' + z + '">'
+          + '<div class="pg">' + esc(c.gong) + (z === mz ? '<span class="pbadge">命</span>' : '')
+          + (c.gong === nowGong ? '<span class="pbadge">限</span>' : '')
+          + (c.gong === xiaoGong ? '<span class="pbadge">小</span>' : '') + '</div>'
+          + '<div class="pz">' + esc(z) + '　' + esc(c.ci) + '　宮主' + esc(c.zhu) + '　度主' + esc(c.du) + '</div>'
           + (c.who.length ? '<div class="pw">' + c.who.map(function (w) {
-              var y4 = { 羅睺: 1, 計都: 1, 月孛: 1, 紫氣: 1 }[w];
-              return '<span' + (y4 ? ' class="yu4"' : '') + '>' + esc(w) + (PAN.ming(w, z) ? '<i>' + esc(PAN.ming(w, z)) + '</i>' : '') + '</span>'; }).join('') + '</div>'
+              var y4 = { 羅睺: 1, 計都: 1, 月孛: 1, 紫氣: 1 }[w], mk3 = yaoMark(w);
+              return '<span' + (y4 ? ' class="yu4"' : '') + '>' + esc(w)
+                + (PAN.ming(w, z) ? '<i>' + esc(PAN.ming(w, z)) + '</i>' : '')
+                + (mk3 ? '<em' + (mk3.bad ? ' class="pbad"' : '') + '>' + esc(mk3.t) + '</em>' : '')
+                + '</span>'; }).join('') + '</div>'
             : '<div class="pw pnone">（無曜）</div>')
           + '<div class="ps">'
           + c.ji.slice(0, 3).map(function (s) { return '<q>' + esc(s) + '</q>'; }).join('')
@@ -4709,7 +4793,13 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       });
     });
     h += '</div>';   // 關閉 .pangrid
-    h += '<div class="tiny" style="margin-top:8px">※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
+    h += '<div class="tiny" style="margin-top:8px">'
+      + '曜名後之小字：前者為該曜在此宮之<b>位名</b>（原書所立，如玉輅、天暗），'
+      + '後者為<b>強弱</b>——<span style="color:var(--lv)">入廟・正廟・乘旺・樂宮・喜宮・殿垣・得殿・得垣・時旺</span>為強，'
+      + '<span style="color:var(--zhu)">失經・時衰</span>為弱。'
+      + '四層併判，取最要緊者一項；四層之全表在「星盤」分頁。<br>'
+      + '金框加「限」者為所查之年行限所在之宮，「小」為小限之宮。'
+      + '※ 該宮之行限歲數原書未著，本引擎由總數反推平分，僅供參考。</div>';
     h += '<div id="panDetail" class="pandetail"><div class="tiny">點上方任一宮格，此處顯示該宮之白話簡述。</div></div>';
     h += '</div>';   // 關閉命盤卡
     // 合格・忌格實判（七政）
@@ -4893,8 +4983,10 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         var cst = function (n) { return '<span style="color:' + (SS.WANG.indexOf(n) >= 0 ? 'var(--lv)' : 'var(--mu)') + '">' + esc(n) + '</span>'; };
         var st = c.stage ? PAN.stage(c.stage) : null;
         d += '<h4>這一宮強不強</h4><div class="bai">'
-          + '每一宮都有一顆<b>宮主星</b>，這一宮的事順不順，先看它的宮主。'
-          + '此宮宮主是 ' + cy(c.zhu) + '。'
+          + '每一宮有兩個主：<b>宮主</b>（這一宮所屬之曜）與<b>度主</b>（宮界起點所躔之宿所屬之曜）。'
+          + '原書說「<b>度主為要，宮主次之</b>」——宮如州郡、度如縣邑，縣近而州遠；夜生的人更重度主。<br>'
+          + '此宮宮主是 ' + cy(c.zhu) + '，度主是 ' + cy(c.du)
+          + '<span class="tiny" style="color:var(--mu)">（宮界起於 ' + esc(c.dusu) + ' 宿）</span>。'
           + (st ? '而 ' + cy(c.zhu) + ' 走到 <b>' + esc(z) + '</b> 宮，處於「' + cst(c.stage)
               + '」這一階——' + esc(st[1]) + '，原書歸為' + cst(c.stage === st[0] ? c.stage : st[0]) + '。' : '')
           + '</div>';
@@ -4946,9 +5038,12 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         if (c.who.length) {
           d += '<h4>落在此宮的曜</h4>';
           c.who.forEach(function (w) {
-            var yb = PAN.yao(w), nm = PAN.ming(w, z);
+            var yb = PAN.yao(w), nm = PAN.ming(w, z), mk4 = yaoMark(w);
             d += '<div class="bai" style="margin-bottom:8px">' + cy(w)
-              + (nm ? '　在此位名「<b>' + esc(nm) + '</b>」' : '') + '<br>' + esc(yb ? yb[1] : '') + '</div>';
+              + (nm ? '　在此位名「<b>' + esc(nm) + '</b>」' : '')
+              + (mk4 ? '　<span class="tag ' + (mk4.bad ? 'r' : 'g') + '">' + esc(mk4.t) + '</span>'
+                  + '<span class="tiny" style="color:var(--mu)">（' + esc(mk4.src) + '）</span>' : '')
+              + '<br>' + esc(yb ? yb[1] : '') + '</div>';
           });
           d += '<div class="tiny">各曜在此宮之完整歌訣與原文，見「星盤」分頁。</div>';
         } else {
@@ -4988,6 +5083,13 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     var CNH = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
     var ABBR = { 太陽: '日', 太陰: '月', 水星: '水', 金星: '金', 火星: '火', 木星: '木', 土星: '土' };
     var dig = {}; HL.P7.forEach(function (n) { dig[n] = HL.dignity(n, lonOf[n], isDay); });
+    function gRetro(n) {
+      if (n === '太陽' || n === '太陰') return false;
+      var b = PL.geoLon(n, T.jdTT - 0.5).lon, c = PL.geoLon(n, T.jdTT + 0.5).lon;
+      return (XY.mod(c - b + 180, 360) - 180) < 0;
+    }
+    var retroG = {}, sunUnder = {};
+    HL.P7.forEach(function (n) { retroG[n] = gRetro(n); sunUnder[n] = HL.underSun(n, lonOf[n], sunL); });
     var tot = HL.P7.reduce(function (x, n) { return x + dig[n].score; }, 0);
     var mlord = HL.DOM[ascSign];
     var pf = HL.profection(age, ascSign);
@@ -5050,8 +5152,11 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     for (var k = 0; k < 12; k++) {
       var t1 = k * 30, t2 = t1 + 30, hs = k + 1;
       var sg2 = HL.SIGN[XY.mod(ai + k, 12)], who = atSign[sg2] || [], tp = HL.TOPOS[k];
-      sv += '<path d="' + sector(96, 240, t1, t2) + '" fill="' + (k % 2 ? 'rgba(94,144,174,.10)' : 'rgba(94,144,174,.05)')
-        + '" stroke="rgba(94,144,174,.34)" stroke-width=".8"/>';
+      var isPf = (pf && pf.house === hs);
+      sv += '<path d="' + sector(96, 240, t1, t2) + '" fill="' + (isPf ? 'rgba(200,164,77,.13)' : (k % 2 ? 'rgba(94,144,174,.10)' : 'rgba(94,144,174,.05)'))
+        + '" stroke="' + (isPf ? 'rgba(200,164,77,.75)' : 'rgba(94,144,174,.34)') + '" stroke-width="' + (isPf ? 1.6 : 0.8) + '"/>';
+      if (isPf) { var pfp = pol2(140, t1 + 15);
+        sv += '<text x="' + pfp[0].toFixed(1) + '" y="' + pfp[1].toFixed(1) + '" fill="#C8A44D" font-size="11" font-family="serif" text-anchor="middle">今年</text>'; }
       sv += '<path class="hsec" data-hs="' + hs + '" d="' + sector(96, 240, t1, t2) + '" fill="transparent"/>';
       var mid = t1 + 15;
       var ps = pol2(262, mid);
@@ -5061,33 +5166,57 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + CNH[k] + '·' + tp.cn + '</text>';
       who.slice(0, 4).forEach(function (n, i) {
         var pp = pol2(216 - i * 30, mid), dg = dig[n];
-        var top = dg.list.length ? dg.list[0] : null;
+        var top = dg.list.length ? dg.list[0] : (sunUnder[n] || null);
+        var hr3 = HL.hairesis(n, isDay, sunL, lonOf[n]);
         sv += '<text x="' + pp[0].toFixed(1) + '" y="' + pp[1].toFixed(1) + '" fill="#E8E4D9" font-size="18" font-family="serif" text-anchor="middle" dominant-baseline="central">'
-          + ABBR[n] + '</text>';
-        if (top) sv += '<text x="' + (pp[0] + 14).toFixed(1) + '" y="' + (pp[1] + 8).toFixed(1) + '" fill="'
+          + ABBR[n] + (retroG[n] ? '<tspan fill="#C0453A" font-size="10">℞</tspan>' : '') + '</text>';
+        if (top) sv += '<text x="' + (pp[0] + 15).toFixed(1) + '" y="' + (pp[1] + 9).toFixed(1) + '" fill="'
           + (top.v > 0 ? '#7FA98E' : '#C0453A') + '" font-size="10" font-family="sans-serif" text-anchor="middle">' + top.k + '</text>';
+        if (hr3) sv += '<text x="' + (pp[0] + 15).toFixed(1) + '" y="' + (pp[1] - 8).toFixed(1) + '" fill="'
+          + (hr3 === '合宗' ? '#7FA98E' : '#C0453A') + '" font-size="9.5" font-family="sans-serif" text-anchor="middle">'
+          + (hr3 === '合宗' ? '宗' : '失') + '</text>';
+        if (pf && pf.lord === n) sv += '<text x="' + (pp[0] - 15).toFixed(1) + '" y="' + (pp[1] - 8).toFixed(1)
+          + '" fill="#C8A44D" font-size="9.5" font-family="sans-serif" text-anchor="middle">年</text>';
       });
       if (who.length > 4) {
         var pq = pol2(216 - 4 * 30, mid);
         sv += '<text x="' + pq[0].toFixed(1) + '" y="' + pq[1].toFixed(1) + '" fill="#8593AE" font-size="11" text-anchor="middle">+' + (who.length - 4) + '</text>';
       }
     }
-    var pa = pol2(248, 0);
-    sv += '<line x1="' + (300 - 288) + '" y1="300" x2="' + (300 - 240) + '" y2="300" stroke="#C8A44D" stroke-width="2"/>';
-    sv += '<text x="18" y="292" fill="#C8A44D" font-size="13" font-family="serif">命</text>';
+    function thOf(L) { return XY.mod(L - ai * 30, 360); }
+    function ptr(L, col, lab) {
+      var t = thOf(L), p1 = pol2(240, t), p2 = pol2(286, t), p3 = pol2(296, t);
+      return '<line x1="' + p1[0].toFixed(1) + '" y1="' + p1[1].toFixed(1) + '" x2="' + p2[0].toFixed(1)
+        + '" y2="' + p2[1].toFixed(1) + '" stroke="' + col + '" stroke-width="2"/>'
+        + '<text x="' + p3[0].toFixed(1) + '" y="' + p3[1].toFixed(1) + '" fill="' + col
+        + '" font-size="12" font-family="serif" text-anchor="middle" dominant-baseline="central">' + lab + '</text>';
+    }
+    var mcH = houseOf(HL.signOf(a.mc));
+    sv += ptr(a.asc, '#C8A44D', '命');
+    sv += ptr(a.mc, '#8FBBD4', '天');
     sv += '<circle cx="300" cy="300" r="96" fill="rgba(22,34,62,.9)" stroke="rgba(94,144,174,.3)"/>';
     sv += '<text x="300" y="284" fill="#8FBBD4" font-size="15" font-family="serif" text-anchor="middle">'
       + (isDay ? '晝生盤' : '夜生盤') + '</text>';
     sv += '<text x="300" y="308" fill="#E3C67E" font-size="14" font-family="serif" text-anchor="middle">命主 '
       + esc(mlord) + '</text>';
-    sv += '<text x="300" y="330" fill="#8593AE" font-size="12" text-anchor="middle">點任一宮看白話</text>';
+    sv += '<text x="300" y="328" fill="#8593AE" font-size="11.5" text-anchor="middle">中天在 ' + mcH + ' 宮'
+      + (nowF ? '　法達 ' + esc(nowF.lord) : '') + '</text>';
+    sv += '<text x="300" y="346" fill="#8593AE" font-size="11.5" text-anchor="middle">'
+      + (pf ? '今年小限 ' + pf.house + ' 宮・年主 ' + esc(pf.lord) : '') + '</text>';
+    sv += '<text x="300" y="366" fill="#8593AE" font-size="11" text-anchor="middle">點任一宮看白話</text>';
     sv += '</svg>';
     h += sv;
     h += '<div class="tiny" style="margin-top:8px">'
       + '曜名單字：日＝太陽　月＝太陰　水金火木土＝五星。'
-      + '曜名旁的小字為它在這一宮的強弱：'
-      + '<span style="color:var(--lv)">廟・旺・三分・界・面</span>為強，'
-      + '<span style="color:var(--zhu)">落・弱</span>為弱，無小字者古典稱「外人」（Peregrine），無所憑依。</div>';
+      + '曜名右下之小字為<b>強弱</b>：<span style="color:var(--lv)">廟・旺・三分・界・面</span>為強，'
+      + '<span style="color:var(--zhu)">落・弱・燃燒・日下</span>為弱，'
+      + '<span style="color:var(--lv)">日心</span>反吉，無小字者古典稱「外人」（Peregrine），無所憑依。<br>'
+      + '曜名右上之小字為<b>宗</b>：<span style="color:var(--lv)">宗</span>＝合宗、'
+      + '<span style="color:var(--zhu)">失</span>＝失宗。左上 <span style="color:var(--jin2)">年</span> 為今年之年主星，'
+      + '<span style="color:var(--zhu)">℞</span> 為逆行。<br>'
+      + '外圈兩根指針：<span style="color:var(--jin2)">命</span>＝上升點實位，'
+      + '<span style="color:var(--shi2)">天</span>＝中天——整宮制下中天常不落十宮，本盤落 <b>' + mcH + '</b> 宮。'
+      + '金框那一宮為今年小限所行。</div>';
     h += '<div id="hDetail" class="hdetail"><div class="tiny">點上方任一宮，此處顯示該宮之白話。</div></div>';
     h += '</div>';
 
@@ -5131,6 +5260,9 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
               : '<span style="color:var(--mu)">外人 Peregrine（無所憑依）</span>')
             + '　尊貴 <b>' + (dg2.score > 0 ? '+' : '') + dg2.score + '</b>'
             + (hr ? '　<span class="tag ' + (hr === '合宗' ? 'g' : 'r') + '">' + hr + '</span>' : '')
+            + (sunUnder[n] ? '　<span class="tag ' + (sunUnder[n].v > 0 ? 'g' : 'r') + '">' + esc(sunUnder[n].k)
+                + '</span>距日 ' + sunUnder[n].d.toFixed(1) + '°' : '')
+            + (retroG[n] ? '　<span class="tag r">逆行</span>古典主力減' : '')
             + (n === ld ? '　<span class="tag g">自為宮主</span>' : '')
             + '</div>';
         });
@@ -5168,8 +5300,11 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<b>界</b>（星座內某一段度數之主，+2）、<b>面</b>（每十度一主，+1）；'
       + '在廟之對宮為<b>落</b>（−5）、在旺之對宮為<b>弱</b>（−4）。<br><br>'
       + '五等都不佔的叫<b>外人</b>（Peregrine）——不是凶，是「無所憑依」，做事得靠別人。<br><br>'
+      + '另有一層與尊貴各自獨立：<b>離太陽太近</b>。合日十七分之內為<b>日心</b>（在日之心，反主大吉）、'
+      + '八度半之內為<b>燃燒</b>（力大減）、十七度之內為<b>日下</b>（力減）。'
+      + '此依 Lilly《Christian Astrology》一系，不併入尊貴計分。<br><br>'
       + '本盤為<b>' + (isDay ? '晝生' : '夜生') + '</b>盤，三分主依晝夜而異，故同一顆星晝夜可差三分。</div></div>'
-      + '<table><tr><th>曜</th><th>星座度數</th><th>尊貴</th><th>分</th><th>宗</th><th>此度之主</th></tr>';
+      + '<table><tr><th>曜</th><th>星座度數</th><th>尊貴</th><th>分</th><th>宗</th><th>日下</th><th>此度之主</th></tr>';
     HL.P7.forEach(function (n) {
       var d2 = dig[n], hr2 = HL.hairesis(n, isDay, sunL, lonOf[n]);
       h += '<tr><td class="qi">' + esc(n) + '</td>'
@@ -5180,7 +5315,11 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '<td class="num" style="color:' + (d2.score > 0 ? 'var(--lv)' : d2.score < 0 ? 'var(--zhu)' : 'var(--mu)') + '">'
         + (d2.score > 0 ? '+' : '') + d2.score + '</td>'
         + '<td class="tiny">' + (hr2 ? '<span class="tag ' + (hr2 === '合宗' ? 'g' : 'r') + '">' + hr2 + '</span>' : '') + '</td>'
-        + '<td class="tiny">宮主 ' + esc(d2.ruler) + '・界主 ' + esc(d2.term) + '・面主 ' + esc(d2.faceR) + '</td></tr>';
+        + '<td class="tiny">' + (sunUnder[n] ? '<span class="tag ' + (sunUnder[n].v > 0 ? 'g' : 'r') + '">'
+            + esc(sunUnder[n].k) + '</span>距日 ' + sunUnder[n].d.toFixed(1) + '°'
+            : (n === '太陽' ? '—' : '否')) + '</td>'
+        + '<td class="tiny">宮主 ' + esc(d2.ruler) + '・界主 ' + esc(d2.term) + '・面主 ' + esc(d2.faceR)
+        + (retroG[n] ? '　<span style="color:var(--zhu)">℞ 逆行</span>' : '') + '</td></tr>';
     });
     h += '</table><div class="tiny" style="margin-top:8px">上升 ' + esc(ascSign) + ' '
       + (XY.mod(a.asc, 30)).toFixed(2) + '°，其廟主 <b>' + esc(mlord) + '</b> 即命主星。七曜尊貴總分 '
@@ -5335,6 +5474,11 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<b>此頁全為吠陀判準，不與希臘或七政互證。這裡的十二宮也不是七政的十二宮</b>'
       + '（七政命宮由太陽所在宮加生時逆退，座標用宿度；此處第一宮由上升點定，座標用恆星等分十二宮）。</div></div>';
 
+    /* 大運先算，俾盤面可標其主星所在之宮 */
+    var vmChart = VD.vimshottari(sidMoon, byDec);
+    var nowMd = vmChart ? vmChart.list.filter(function (x) { return qy >= x.from && qy < x.to; })[0] : null;
+    var nowAd = nowMd ? VD.antardasha(nowMd.lord, nowMd.years, nowMd.from)
+      .filter(function (x) { return qy >= x.from && qy < x.to; })[0] : null;
     /* ── 一、Rāśi 盤（南印方形。只放結果，不放過程——度數等推算中間量退至下方各表） ── */
     var atSign = {}, lonOf = {};
     rows.forEach(function (r) {
@@ -5345,6 +5489,13 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     Object.keys(atSign).forEach(function (k) {
       atSign[k].sort(function (a, b) { return XY.mod(lonOf[a], 30) - XY.mod(lonOf[b], 30); });
     });
+    function vRetro(n) {
+      if (n === '太陽' || n === '太陰') return false;
+      if (n === '羅睺' || n === '計都') return true;
+      var b = PL.geoLon(n, T.jdTT - 0.5).lon, c = PL.geoLon(n, T.jdTT + 0.5).lon;
+      return (XY.mod(c - b + 180, 360) - 180) < 0;
+    }
+    function vargot(n) { return VD.varga(lonOf[n], 9).sign === VD.rasiOf(lonOf[n]); }
     /* 一曜於某宮之強弱標記——只取一項最要緊者，其餘明細見下方各表 */
     function mark(n) {
       var b = VD.bala(n, lonOf[n]);
@@ -5370,27 +5521,39 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         if (gi === 5) h += '<div class="vcenter">'
           + '<div class="vcn">吠陀 Rāśi 盤</div>'
           + '<div class="vct">Lagna（第一宮）　<b style="color:var(--lv)">' + esc(ascSign) + '</b>'
+          + '<br>月宿 ' + esc(nk.name) + '（' + esc(nk.han) + '）'
+          + (nowMd ? '<br>' + qy + ' 年行 <b style="color:var(--jin2)">' + esc(nowMd.lord) + '</b> 大運'
+              + (nowAd ? '　小運 <b style="color:var(--jin2)">' + esc(nowAd.lord) + '</b>' : '') : '')
           + '<br>點任一宮看白話</div></div>';
         continue;
       }
       var sg2 = VD.RASI[SI[gi]], hs = houseOf(sg2), who = atSign[sg2] || [], bv = VD.BHAVA[hs - 1];
-      h += '<div class="vcell' + (hs === 1 ? ' vlagna' : '') + '" data-vs="' + esc(sg2) + '">'
-        + '<div class="vs">' + esc(sg2) + (hs === 1 ? '<u>命</u>' : '')
+      var ld2 = VD.DOMV[sg2], lh2 = houseOf(VD.rasiOf(lonOf[ld2]));
+      var isDa = (nowMd && VD.rasiOf(lonOf[nowMd.lord]) === sg2);
+      h += '<div class="vcell' + (hs === 1 ? ' vlagna' : '') + (isDa ? ' vdasha' : '') + '" data-vs="' + esc(sg2) + '">'
+        + '<div class="vs">' + esc(sg2) + (hs === 1 ? '<u>命</u>' : '') + (isDa ? '<u class="vdu">運</u>' : '')
         + '<span class="vh">' + CNH[hs - 1] + '宮　' + esc(bv.sa) + ' ' + esc(bv.cn) + '</span></div>'
         + (who.length ? '<div class="vp">' + who.map(function (n) {
             var mk2 = mark(n), isN = (n === '羅睺' || n === '計都');
             return '<span' + (isN ? ' class="vnode"' : '') + '>' + esc(ABBR[n] || n)
+              + (vRetro(n) ? '<em class="vbad">℞</em>' : '')
               + (mk2 ? '<em' + (mk2.bad ? ' class="vbad"' : '') + '>' + esc(mk2.t) + '</em>' : '')
+              + (vargot(n) ? '<em>倍</em>' : '')
               + '</span>'; }).join('') + '</div>' : '')
+        + '<div class="vl">主 <b>' + esc(ABBR[ld2] || ld2) + '</b> 在' + CNH[lh2 - 1] + '宮</div>'
         + '</div>';
     }
     h += '</div>';
     h += '<div class="tiny" style="margin-top:8px">'
       + '曜名單字：日＝太陽　月＝太陰　火水木金土＝五星　'
       + '<span style="color:var(--zhu)">羅＝羅睺　計＝計都</span>（朱色，示其為算點而非實星）。'
-      + '曜名旁的小字為它在這一宮的強弱：'
-      + '<span style="color:var(--lv)">旺・本宮・根本三角</span>為強，'
-      + '<span style="color:var(--zhu)">弱・燃燒</span>為弱，無小字者不強不弱。</div>';
+      + '曜名旁的小字：<span style="color:var(--lv)">旺・本宮・根本三角</span>為強，'
+      + '<span style="color:var(--zhu)">弱・燃燒</span>為弱，無小字者不強不弱；'
+      + '<span style="color:var(--zhu)">℞</span> 為逆行，<span style="color:var(--lv)">倍</span> 為 vargottama'
+      + '（本盤與 D9 同座，其力倍之）。<br>'
+      + '每格末行 <b style="color:var(--lv)">主</b> 為該宮宮主及其所落之宮——'
+      + '<b>宮主落在哪一宮，這一宮的事就往哪裡去</b>，這是吠陀讀盤的主軸，故列於盤上。'
+      + (nowMd ? '金框標 <span style="color:var(--jin2)">運</span> 者，為現行大運主星所在之宮。' : '') + '</div>';
     h += '<div id="vDetail" class="vdetail"><div class="tiny">點上方任一宮，此處顯示該宮之白話。</div></div>';
     h += '</div>';
     /* 各宮之白話——先結果、後細節，末尾指路。關鍵名詞與盤面同規格 */
@@ -5520,7 +5683,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '「本命」分頁四軌並列即此差別。</div></div>';
 
     /* ── 五、大運與 Antardaśā ── */
-    var vm = VD.vimshottari(sidMoon, byDec);
+    var vm = vmChart;
     if (vm) {
       h += '<div class="card"><h2>Vimshottari 大運</h2>'
         + '<div class="tiny" style="margin-bottom:10px">九曜輪值，合一百二十年。自出生時月宿主星起算，'
@@ -5740,7 +5903,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 197 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 202 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
