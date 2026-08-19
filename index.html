@@ -255,6 +255,7 @@ details.item[open]>summary .isu{color:var(--jin)}
   <button role="tab" id="t8" aria-selected="false" aria-controls="p8">行限</button>
   <button role="tab" id="tg" aria-selected="false" aria-controls="pg">希臘</button>
   <button role="tab" id="tv" aria-selected="false" aria-controls="pv">吠陀</button>
+  <button role="tab" id="td" aria-selected="false" aria-controls="pd">到山</button>
   <button role="tab" id="t4" aria-selected="false" aria-controls="p4">環圖</button>
   <button role="tab" id="t7" aria-selected="false" aria-controls="p7">查表</button>
   <button role="tab" id="t5" aria-selected="false" aria-controls="p5">文獻·宿曜</button>
@@ -279,6 +280,7 @@ details.item[open]>summary .isu{color:var(--jin)}
       <div class="w"><label for="xmode">行限用何法</label><select id="xmode">
         <option value="both">兩法並列</option><option value="gong">甲・宮限</option><option value="dao">乙・倒限</option>
       </select></div>
+      <div class="w"><label for="qtime">查詢時刻（到山用）</label><input id="qtime" type="time" value="12:00"></div>
       <div class="w"><label for="nodemode">羅計取平交點或真交點</label><select id="nodemode">
         <option value="true">真交點（含週期項）</option><option value="mean">平交點（多數吠陀排盤所用）</option>
       </select></div>
@@ -297,6 +299,7 @@ details.item[open]>summary .isu{color:var(--jin)}
 <section id="p8" role="tabpanel" hidden><div id="outXian"></div></section>
 <section id="pg" role="tabpanel" hidden><div id="outXiG"></div></section>
 <section id="pv" role="tabpanel" hidden><div id="outXiV"></div></section>
+<section id="pd" role="tabpanel" hidden><div id="outDao"></div></section>
 <section id="p4" role="tabpanel" hidden><div id="outRing"></div></section>
 <section id="p7" role="tabpanel" hidden><div id="outLook"></div></section>
 <section id="p5" role="tabpanel" hidden><div id="wenXY"></div></section>
@@ -308,6 +311,13 @@ details.item[open]>summary .isu{color:var(--jin)}
 </footer>
 </div>
 <script>
+
+/* 地磁偏角 —— npm `geomagnetism` 之打包（Apache-2.0），係數為其所附 wmm-2025.json。
+   驗證：對 NOAA 官方 WMM2025_TestValues.txt 全一百筆比對，中位偏差 0.0023°、最大 0.0050°。
+   有效區間 2025.0–2030.0，出界回 null 不外推。 */
+var GEOMAG=(()=>{var M=(t,h)=>()=>(h||t((h={exports:{}}).exports,h),h.exports);var Z=M((u0,I)=>{var Q=D();I.exports=P;function P(t){this.x=t.x,this.y=t.y,this.z=t.z}P.prototype.toGeodetic=function(t){var h=this.z<0?-t.b:t.b,a=this.x,i=this.y,e=this.z,n=Math.sqr(a*a+i*i),r=(h*e-(t.a*t.a-h*h))/(t.a*n),d=(h*e+(t.a*t.a-h*h))/(t.a*n),s=4/3*(r*d+1),l=2*(r*r+d*d),_=s*s*s+l*l,o;_>0?o=Math.pow(Math.sqrt(_)-l,1/3)-Math.pow(Math.sqrt(_)+l,1/3):o=2*Math.sqrt(-s)*Math.cos(Math.acos(l/(s*Math.sqrt(-s)))/3),o*o<Math.abs(s)&&(o=-(o*o*o+2*l)/3*s);var c=(Math.sqrt(r*r+o)+r)/2,v=Math.sqrt(c*c+(d-o*c)/(2*c-r))-c,f=Math.atan(t.a*(1-v*v)/(2*h*v)),u=Math.atan2(i,a);u<0&&(u+=2*Math.PI);var p=(n-t.a*v)*Math.cos(f)+(e-h)*Math.sin(f),m=u*Math.PI/180;return m>180&&(m-=360),new Q({lambda:m,phi:f*Math.PI/180,height_above_ellipsoid:p,ellipsoid:t})}});var S=M((g0,C)=>{C.exports=R;function R(t,h){var a=Math.sin(Math.PI/180*t.phig),i;h<=16||1-Math.abs(a)<1e-10?i=X(a,h):i=$(a,h),this.pcup=i.pcup,this.dpcup=i.dpcup}function X(t,h){var a,i,e,n,r,d,s,l,_=[1],o=[1],c=[0];for(i=Math.sqrt((1-t)*(1+t)),l=(h+1)*(h+2)/2,e=1;e<=h;e++)for(n=0;n<=e;n++)r=e*(e+1)/2+n,e==n?(d=(e-1)*e/2+n-1,o[r]=i*o[d],c[r]=i*c[d]+t*o[d]):e==1&&n==0?(d=(e-1)*e/2+n,o[r]=t*o[d],c[r]=t*c[d]-i*o[d]):e>1&&e!=n&&(d=(e-2)*(e-1)/2+n,s=(e-1)*e/2+n,n>e-2?(o[r]=t*o[s],c[r]=t*c[s]-i*o[s]):(a=((e-1)*(e-1)-n*n)/((2*e-1)*(2*e-3)),o[r]=t*o[s]-a*o[d],c[r]=t*c[s]-i*o[s]-a*c[d]));for(e=1;e<=h;e++)for(r=e*(e+1)/2,d=(e-1)*e/2,_[r]=_[d]*(2*e-1)/e,n=1;n<=e;n++)r=e*(e+1)/2+n,d=e*(e+1)/2+n-1,_[r]=_[d]*Math.sqrt((e-n+1)*(n==1?2:1)/(e+n));for(e=1;e<=h;e++)for(n=0;n<=e;n++)r=e*(e+1)/2+n,o[r]*=_[r],c[r]*=-_[r];return{pcup:o,dpcup:c}}function $(t,h){if(Math.abs(t)==1)throw new Error("Error in PcupHigh: derivative cannot be calculated at poles");var a,i,e,n=(h+1)*(h+2)/2,r=[],d=[],s=[],l=1e-280;for(a=0;a<=2*h+1;++a)s[a]=Math.sqrt(a);for(e=2,a=0;a<=h;a++){for(e++,r[e]=(2*a-1)/a,d[e]=(a-1)/a,i=1;i<=a-2;i++)e++,r[e]=(2*a-1)/s[a+i]/s[a-i],d[e]=s[a-i-1]*s[a+i-1]/s[a+i]/s[a-i];e+=2}var _=Math.sqrt((1-t)*(1+t)),o,c=t,v=1,f=[1,c],u=[0,_];if(h==0)throw new Error("Error in PcupHigh: n_max must be greater than 0");for(e=1,a=2;a<=h;a++)e=e+a,o=r[e]*t*c-d[e]*v,f[e]=o,u[e]=a*(c-t*o)/_,v=c,c=o;for(var p=s[2]*l,m=1/l,g=0,i=1;i<=h-1;++i)for(m*=_,g=g+i+1,p=p*s[2*i+1]/s[2*i],f[g]=p*m/s[2*i+1],u[g]=-(i*t*f[g]/_),v=p/s[2*i+1],e=g+i+1,c=t*s[2*i+1]*v,f[e]=c*m,u[e]=(v*m*s[2*i+1]-t*(i+1)*f[e])/_,a=i+2;a<=h;++a)e=e+a,o=t*r[e]*c-d[e]*v,f[e]=o*m,u[e]=(s[a+i]*s[a-i]*c*m-a*t*f[e])/_,v=c,c=o;return m=m*_,g=g+i+1,p=p/s[2*h],f[g]=p*m,u[g]=-h*t*f[g]/_,{pcup:f,dpcup:u}}});var G=M((M0,E)=>{var t0=Z(),e0=S();E.exports=z;function z(t){this.lambda=t.lambda,this.phig=t.phig,this.r=t.r}z.prototype.toCartesian=function(){var t=this.phig*Math.PI/180,h=this.lambda*Math.PI/180;return new t0({x:this.r*cos(t)*cos(h),y:this.r*cos(t)*sin(h),z:this.r*sin(t)})};z.prototype.toGeodetic=function(t){return this.toCartesian().toGeodetic(t)};z.prototype.getHarmonicVariables=function(t,h){var a,i,e=Math.cos(Math.PI/180*this.lambda),n=Math.sin(Math.PI/180*this.lambda),r=[1,e],d=[0,n],s=[t.re/this.r*(t.re/this.r)];for(i=1;i<=h;i++)s[i]=s[i-1]*(t.re/this.r);for(a=2;a<=h;a++)r[a]=r[a-1]*e-d[a-1]*n,d[a]=r[a-1]*n+d[a-1]*e;return{relative_radius_power:s,cos_mlambda:r,sin_mlambda:d}};z.prototype.getLegendreFunction=function(t){return new e0(this,t)}});var F=M((p0,V)=>{V.exports=a0;function a0(t){t=t||{a:6378.137,b:6356.7523142,fla:1/298.257223563,re:6371.2},this.a=t.a,this.b=t.b,this.fla=t.fla,this.re=t.re,this.eps=Math.sqrt(1-this.b*this.b/(this.a*this.a)),this.epssq=this.eps*this.eps}});var D=M((b0,H)=>{var r0=G(),i0=F();H.exports=q;function q(t){this.options=t,this.lambda=t.lambda||t.lon,this.phi=t.phi||t.lat,this.height_above_ellipsoid=t.height_above_ellipsoid||0,this.ellipsoid=t.ellipsoid||new i0}q.prototype.toSpherical=function(){var t=this.ellipsoid,h=Math.cos(this.phi*Math.PI/180),a=Math.sin(this.phi*Math.PI/180),i=t.a/Math.sqrt(1-t.epssq*a*a),e=(i+this.height_above_ellipsoid)*h,n=(i*(1-t.epssq)+this.height_above_ellipsoid)*a,r=Math.sqrt(e*e+n*n);return new r0({r,phig:180/Math.PI*Math.asin(n/r),lambda:this.lambda})};q.prototype.clone=function(){return new q(this.options)}});var O=M((y0,L)=>{L.exports=b;function b(t){this.x=t.x,this.y=t.y,this.z=t.z,this.h=t.h,this.f=t.f,this.incl=t.incl,this.decl=t.decl,this.gv=t.gv,this.xdot=t.xdot,this.ydot=t.ydot,this.zdot=t.zdot,this.hdot=t.hdot,this.fdot=t.fdot,this.incldot=t.incldot,this.decldot=t.decldot,this.gvdot=t.gvdot}b.prototype.clone=function(){return new b(this)};b.prototype.scale=function(t){return new b({x:this.x*t,y:this.y*t,z:this.z*t,h:this.h*t,f:this.f*t,incl:this.incl*t,decl:this.decl*t,gv:this.gv*t,xdot:this.xdot*t,ydot:this.ydot*t,zdot:this.zdot*t,hdot:this.hdot*t,fdot:this.fdot*t,incldot:this.incldot*t,decldot:this.decldot*t,gvdot:this.gvdot*t})};b.prototype.subtract=function(t){return new b({x:this.x-t.x,y:this.y-t.y,z:this.z-t.z,h:this.h-t.h,f:this.f-t.f,incl:this.incl-t.incl,decl:this.decl-t.decl,gv:this.gv-t.gv,xdot:this.xdot-t.xdot,ydot:this.ydot-t.ydot,zdot:this.zdot-t.zdot,hdot:this.hdot-t.hdot,fdot:this.fdot-t.fdot,incldot:this.incldot-t.incldot,decldot:this.decldot-t.decldot,gvdot:this.gvdot-t.gvdot})};b.fromGeoMagneticVector=function(t){var h=t.bx,a=t.by,i=t.bz,e=Math.sqrt(h*h+a*a);return new b({x:h,y:a,z:i,h:e,f:Math.sqrt(e*e+i*i),decl:180/Math.PI*Math.atan2(a,h),incl:180/Math.PI*Math.atan2(i,e)})};b.fromSecularVariationVector=function(t){var h=t.bx,a=t.by,i=t.bz;return new b({xdot:h,ydot:a,zdot:i,hdot:(this.x*h+this.y*a)/this.h,fdot:(this.x*h+this.y*a+this.z*i)/this.f,decldot:180/Math.PI*(this.x*this.ydot-this.y*this.xdot)/(this.h*this.h),incldot:180/Math.PI*(this.h*this.zdot-this.z*this.hdot)/(this.f*this.f),gvdot:this.decldot})}});var W=M((w0,k)=>{k.exports=T;function T(t){this.bx=t.bx,this.by=t.by,this.bz=t.bz}T.prototype.rotate=function(t,h){var a=Math.PI/180*(t.phig-h.phi);return new T({bz:this.bx*Math.sin(a)+this.bz*Math.cos(a),bx:this.bx*Math.cos(a)-this.bz*Math.sin(a),by:this.by})}});var U=M((z0,B)=>{var h0=D(),s0=O(),o0=W();B.exports=x;function x(t){this.epoch=t.epoch,this.start_date=new Date(t.start_date),this.end_date=new Date(t.end_date),this.name=t.name||"",this.main_field_coeff_g=t.main_field_coeff_g||[0],this.main_field_coeff_h=t.main_field_coeff_h||[0],this.secular_var_coeff_g=t.secular_var_coeff_g||[0],this.secular_var_coeff_h=t.secular_var_coeff_h||[0],this.n_max=t.n_max||0,this.n_max_sec_var=t.n_max_sec_var||0,this.num_terms=this.n_max*(this.n_max+1)/2+this.n_max}x.prototype.getTimedModel=function(t,h=!1){var a=t.getUTCFullYear(),i=(t.valueOf()-Date.UTC(a))/(1e3*3600*24*365),e=a+i,n=e-this.epoch;if(t<this.start_date||t>this.end_date)if(h)console.error("Model is only valid from "+this.start_date.toDateString()+" to "+this.end_date.toDateString());else throw new Error("Model is only valid from "+this.start_date.toDateString()+" to "+this.end_date.toDateString());for(var r=new x({epoch:this.epoch,n_max:this.n_max,n_max_sec_var:this.n_max_sec_var,name:this.name,start_date:this.start_date,end_date:this.end_date}),d=r.n_max_sec_var,s=d*(d+1)/2+d,l=1;l<=this.n_max;l++)for(var _=0;_<=l;_++){var o=l*(l+1)/2+_,c=this.main_field_coeff_h[o],v=this.main_field_coeff_g[o],f=this.secular_var_coeff_h[o],u=this.secular_var_coeff_g[o];o<=s?(r.main_field_coeff_h[o]=c+n*f,r.main_field_coeff_g[o]=v+n*u,r.secular_var_coeff_h[o]=f,r.secular_var_coeff_g[o]=u):(r.main_field_coeff_h[o]=c,r.main_field_coeff_g[o]=v)}return r};x.prototype.getSummation=function(t,h,a){var i=0,e=0,n=0,r,d,s,l,_=h.relative_radius_power,o=h.cos_mlambda,c=h.sin_mlambda,v=this.main_field_coeff_g,f=this.main_field_coeff_h;for(r=1;r<=this.n_max;r++)for(d=0;d<=r;d++)s=r*(r+1)/2+d,n-=_[r]*(v[s]*o[d]+f[s]*c[d])*(r+1)*t.pcup[s],e+=_[r]*(v[s]*c[d]-f[s]*o[d])*d*t.pcup[s],i-=_[r]*(v[s]*o[d]+f[s]*c[d])*t.dpcup[s];var u=Math.cos(Math.PI/180*a.phig);if(Math.abs(u)>1e-10)e=e/u;else{e=0;var p=1,m,g,w=[1],N=Math.sin(Math.PI/180*a.phig);for(r=1;r<=this.n_max;r++)s=r*(r+1)/2+1,m=p*(2*r-1)/r,g=m*Math.sqrt(2*r/(r+1)),p=m,r==1?w[r]=w[r-1]:(l=((r-1)*(r-1)-1)/((2*r-1)*(2*r-3)),w[r]=N*w[r-1]-l*w[r-2]),e+=_[r]*(v[s]*c[1]-f[s]*o[1])*w[r]*g}return new o0({bx:i,by:e,bz:n})};x.prototype.point=function(t){var h=t.length>2&&typeof t[2]=="number"?t[2]:0,a=new h0({lat:t[0],lon:t[1],height_above_ellipsoid:h}),i=a.toSpherical(),e=i.getLegendreFunction(this.n_max),n=i.getHarmonicVariables(a.ellipsoid,this.n_max),r=this.getSummation(e,n,i),d=r.rotate(i,a);return s0.fromGeoMagneticVector(d)}});var Y=M((x0,n0)=>{n0.exports={main_field_coeff_g:[0,-29351.8,-1410.8,-2556.6,2951.1,1649.3,1361,-2404.1,1243.8,453.6,895,799.5,55.7,-281.1,12.1,-233.2,368.9,187.2,-138.7,-142,20.9,64.4,63.8,76.9,-115.7,-40.9,14.9,-60.7,79.5,-77,-8.8,59.3,15.8,2.5,-11.1,14.2,23.2,10.8,-17.5,2,-21.7,16.9,15,-16.8,.9,4.6,7.8,3,-.2,-2.5,-13.1,2.4,8.6,-8.7,-12.9,-1.3,-6.4,.2,2,-1,-.6,-.9,1.5,.9,-2.7,-3.9,2.9,-1.5,-2.5,2.4,-.6,-.1,-.6,-.1,1.1,-1,-.2,2.6,-2,-.2,.3,1.2,-1.3,.6,.6,.5,-.1,-.4,-.2,-1.3,-.7],main_field_coeff_h:[0,0,4545.4,0,-3133.6,-815.1,0,-56.6,237.5,-549.5,0,278.6,-133.9,212,-375.6,0,45.4,220.2,-122.9,43,106.1,0,-18.4,16.8,48.8,-59.8,10.9,72.7,0,-48.9,-14.4,-1,23.4,-7.4,-25.1,-2.3,0,7.1,-12.6,11.4,-9.7,12.7,.7,-5.2,3.9,0,-24.8,12.2,8.3,-3.3,-5.2,7.2,-.6,.8,10,0,3.3,0,2.4,5.3,-9.1,.4,-4.2,-3.8,.9,-9.1,0,0,2.9,-.6,.2,.5,-.3,-1.2,-1.7,-2.9,-1.8,-2.3,0,-1.3,.7,1,-1.4,0,.6,-.1,.8,.1,-1,.1,.2],secular_var_coeff_g:[0,12,9.7,-11.6,-5.2,-8,-1.3,-4.2,.4,-15.6,-1.6,-2.4,-6,5.6,-7,.6,1.4,0,.6,2.2,.9,-.2,-.4,.9,1.2,-.9,.3,.9,0,-.1,-.1,.5,-.1,-.8,-.8,.8,-.1,.2,0,.5,-.1,.3,.2,0,.2,0,-.1,.1,.3,-.3,0,.3,-.1,.1,-.1,.1,0,.1,.1,0,-.3,0,-.1,-.1,0,0,0,0,0,0,0,-.1,0,0,-.1,-.1,-.1,-.1,0,0,0,0,0,0,.1,0,0,0,-.1,0,-.1],secular_var_coeff_h:[0,0,-21.5,0,-27.7,-12.1,0,4,-.3,-4.1,0,-1.1,4.1,1.6,-4.4,0,-.5,2.2,.4,1.7,1.9,0,.3,-1.6,-.4,.9,.7,.9,0,.6,.5,-.8,0,-1,.6,-.2,0,-.2,.5,-.4,.4,-.5,-.6,.3,.2,0,-.3,.3,-.3,.3,.2,-.1,-.2,.4,.1,0,0,0,-.2,.1,-.1,.1,0,-.1,.2,0,0,0,.1,0,.1,0,0,.1,0,0,0,0,0,0,0,-.1,.1,0,0,0,0,0,0,0,-.1],n_max:12,n_max_sec_var:12,epoch:2025,name:"WMM-2025",start_date:"2024-11-13T03:00:00.000Z",end_date:"2029-11-13T03:00:00.000Z"}});var j=M((q0,d0)=>{d0.exports={main_field_coeff_g:[0,-29404.5,-1450.7,-2500,2982,1676.8,1363.9,-2381,1236.2,525.7,903.1,809.4,86.2,-309.4,47.9,-234.4,363.1,187.8,-140.7,-151.2,13.7,65.9,65.6,73,-121.5,-36.2,13.5,-64.7,80.6,-76.8,-8.3,56.5,15.8,6.4,-7.2,9.8,23.6,9.8,-17.5,-.4,-21.1,15.3,13.7,-16.5,-.3,5,8.2,2.9,-1.4,-1.1,-13.3,1.1,8.9,-9.3,-11.9,-1.9,-6.2,-.1,1.7,-.9,.6,-.9,1.9,1.4,-2.4,-3.9,3,-1.4,-2.5,2.4,-.9,.3,-.7,-.1,1.4,-.6,.2,3.1,-2,-.1,.5,1.3,-1.2,.7,.3,.5,-.2,-.5,.1,-1.1,-.3],main_field_coeff_h:[0,0,4652.9,0,-2991.6,-734.8,0,-82.2,241.8,-542.9,0,282,-158.4,199.8,-350.1,0,47.7,208.4,-121.3,32.2,99.1,0,-19.1,25,52.7,-64.4,9,68.1,0,-51.4,-16.8,2.3,23.5,-2.2,-27.2,-1.9,0,8.4,-15.3,12.8,-11.8,14.9,3.6,-6.9,2.8,0,-23.3,11.1,9.8,-5.1,-6.2,7.8,.4,-1.5,9.7,0,3.4,-.2,3.5,4.8,-8.6,-.1,-4.2,-3.4,-.1,-8.8,0,0,2.6,-.5,-.4,.6,-.2,-1.7,-1.6,-3,-2,-2.6,0,-1.2,.5,1.3,-1.8,.1,.7,-.1,.6,.2,-.9,0,.5],secular_var_coeff_g:[0,6.7,7.7,-11.5,-7.1,-2.2,2.8,-6.2,3.4,-12.2,-1.1,-1.6,-6,5.4,-5.5,-.3,.6,-.7,.1,1.2,1,-.6,-.4,.5,1.4,-1.4,0,.8,-.1,-.3,-.1,.7,.2,-.5,-.8,1,-.1,.1,-.1,.5,-.1,.4,.5,0,.4,-.1,-.2,0,.4,-.3,0,.3,0,0,-.4,0,0,0,.2,-.1,-.2,0,-.1,-.2,-.1,0,0,-.1,0,0,0,-.1,0,0,-.1,-.1,-.1,-.1,0,0,0,0,0,0,0,0,0,0,0,0,-.1],secular_var_coeff_h:[0,0,-25.1,0,-30.2,-23.9,0,5.7,-1,1.1,0,.2,6.9,3.7,-5.6,0,.1,2.5,-.9,3,.5,0,.1,-1.8,-1.4,.9,.1,1,0,.5,.6,-.7,-.2,-1.2,.2,.3,0,-.3,.7,-.2,.5,-.3,-.5,.4,.1,0,-.3,.2,-.4,.4,.1,0,-.2,.5,.2,0,0,.1,-.3,.1,-.2,.1,0,-.1,.2,0,0,0,.1,0,.2,0,0,.1,0,-.1,0,0,0,0,0,-.1,.1,0,0,0,.1,0,0,0,-.1],n_max:12,n_max_sec_var:12,epoch:2020,name:"WMM-2020",start_date:"2019-12-10T08:00:00.000Z",end_date:"2024-12-10T08:00:00.000Z"}});var A=M((D0,c0)=>{c0.exports={main_field_coeff_g:[0,-29438.2,-1493.5,-2444.5,3014.7,1679,1351.8,-2351.6,1223.6,582.3,907.5,814.8,117.8,-335.6,69.7,-232.9,360.1,191.7,-141.3,-157.2,7.7,69.4,67.7,72.3,-129.1,-28.4,13.6,-70.3,81.7,-75.9,-7.1,52.2,15,9.1,-3,5.9,24.2,8.9,-16.9,-3.1,-20.7,13.3,11.6,-16.3,-2.1,5.5,8.8,3,-3.2,.6,-13.2,-.1,8.7,-9.1,-10.4,-2,-6.1,.2,.6,-.5,1.8,-.7,2.2,2.4,-1.8,-3.6,3,-1.4,-2.3,2.1,-.8,.6,-.7,.1,1.7,-.2,.4,3.5,-2,-.1,.5,1.2,-.9,.9,.1,.6,-.4,-.5,.2,-.9,0],main_field_coeff_h:[0,0,4796.3,0,-2842.4,-638.8,0,-113.7,246.5,-537.4,0,283.3,-188.6,180.7,-330,0,46.9,196.5,-119.9,16,100.6,0,-20.1,32.8,59.1,-67.1,8.1,61.9,0,-54.3,-19.5,6,24.5,3.5,-27.7,-2.9,0,10.1,-18.3,13.3,-14.5,16.2,6,-9.2,2.4,0,-21.8,10.7,11.8,-6.8,-6.9,7.9,1,-3.9,8.5,0,3.3,-.4,4.6,4.4,-7.9,-.6,-4.2,-2.9,-1.1,-8.8,0,0,2.1,-.6,-1.1,.7,-.2,-2.1,-1.5,-2.6,-2,-2.3,0,-1,.3,1.8,-2.2,.3,.7,-.1,.3,.2,-.9,-.2,.8],secular_var_coeff_g:[0,7,9,-11,-6.2,.3,2.4,-5.7,2,-11,-.8,-.9,-6.5,5.2,-4,-.3,.6,-.8,.1,1.2,1.4,-.8,-.5,-.1,1.6,-1.6,0,1.2,-.3,-.2,-.3,.9,.1,-.6,-.9,.7,-.1,.2,-.2,.5,-.1,.4,.4,-.1,.4,-.1,-.1,0,.4,-.4,0,.3,0,0,-.3,0,0,-.1,.2,-.1,-.2,0,-.1,-.2,-.1,0,0,0,0,0,0,-.1,0,0,0,-.1,0,-.1,0,0,0,0,-.1,0,0,0,0,0,0,0,-.1],secular_var_coeff_h:[0,0,-30.2,0,-29.6,-17.3,0,6.5,-.8,-2,0,-.4,5.8,3.8,-3.5,0,.2,2.3,0,3.3,-.6,0,.3,-1.5,-1.2,.4,.2,1.3,0,.6,.5,-.8,-.2,-1.1,.1,.2,0,-.4,.6,-.1,.6,-.2,-.5,.5,.1,0,-.3,.1,-.4,.3,.1,0,-.1,.5,.2,0,0,.1,-.2,.1,-.1,.1,0,-.1,.2,0,0,0,.1,0,.1,0,0,.1,0,-.1,0,-.1,0,0,0,-.1,.1,0,0,0,0,0,0,0,-.1],n_max:12,n_max_sec_var:12,epoch:2015,name:"WMM-2015v2",start_date:"2018-09-18T06:00:00.000Z",end_date:"2023-09-18T06:00:00.000Z"}});var J=M((T0,_0)=>{_0.exports={main_field_coeff_g:[0,-29438.5,-1501.1,-2445.3,3012.5,1676.6,1351.1,-2352.3,1225.6,581.9,907.2,813.7,120.3,-335,70.3,-232.6,360.1,192.4,-141,-157.4,4.3,69.5,67.4,72.8,-129.8,-29,13.2,-70.9,81.6,-76.1,-6.8,51.9,15,9.3,-2.8,6.7,24,8.6,-16.9,-3.2,-20.6,13.3,11.7,-16,-2,5.4,8.8,3.1,-3.1,.6,-13.3,-.1,8.7,-9.1,-10.5,-1.9,-6.5,.2,.6,-.6,1.7,-.7,2.1,2.3,-1.8,-3.6,3.1,-1.5,-2.3,2.1,-.9,.6,-.7,.2,1.7,-.2,.4,3.5,-2,-.3,.4,1.3,-.9,.9,.1,.5,-.4,-.4,.2,-.9,0],main_field_coeff_h:[0,0,4796.2,0,-2845.6,-642,0,-115.3,245,-538.3,0,283.4,-188.6,180.9,-329.5,0,47.4,196.9,-119.4,16.1,100.1,0,-20.7,33.2,58.8,-66.5,7.3,62.5,0,-54.1,-19.4,5.6,24.4,3.3,-27.5,-2.3,0,10.2,-18.1,13.2,-14.6,16.2,5.7,-9.1,2.2,0,-21.6,10.8,11.7,-6.8,-6.9,7.8,1,-3.9,8.5,0,3.3,-.3,4.6,4.4,-7.9,-.6,-4.1,-2.8,-1.1,-8.7,0,-.1,2.1,-.7,-1.1,.7,-.2,-2.1,-1.5,-2.5,-2,-2.3,0,-1,.5,1.8,-2.2,.3,.7,-.1,.3,.2,-.9,-.2,.7],secular_var_coeff_g:[0,10.7,17.9,-8.6,-3.3,2.4,3.1,-6.2,-.4,-10.4,-.4,.8,-9.2,4,-4.2,-.2,.1,-1.4,0,1.3,3.8,-.5,-.2,-.6,2.4,-1.1,.3,1.5,.2,-.2,-.4,1.3,.2,-.4,-.9,.3,0,.1,-.5,.5,-.2,.4,.2,-.4,.3,0,-.1,-.1,.4,-.5,-.2,.1,0,-.2,-.1,0,0,-.1,.3,-.1,-.1,-.1,0,-.2,-.1,-.2,0,0,-.1,.1,0,0,0,0,0,0,-.1,-.1,.1,0,0,.1,-.1,0,.1,0,0,0,0,0,0],secular_var_coeff_h:[0,0,-26.8,0,-27.1,-13.3,0,8.4,-.4,2.3,0,-.6,5.3,3,-5.3,0,.4,1.6,-1.1,3.3,.1,0,0,-2.2,-.7,.1,1,1.3,0,.7,.5,-.2,-.1,-.7,.1,.1,0,-.3,.3,.3,.6,-.1,-.2,.3,0,0,-.2,-.1,-.2,.1,.1,0,-.2,.4,.3,0,.1,-.1,0,0,-.2,.1,-.1,-.2,.1,-.1,0,0,.1,0,.1,0,0,.1,0,-.1,0,-.1,0,0,0,-.1,0,0,0,0,0,0,0,0,0],n_max:12,n_max_sec_var:12,epoch:2015,name:"WMM-2015",start_date:"2014-12-15T07:00:00.000Z",end_date:"2019-12-15T07:00:00.000Z"}});var v0=M((P0,K)=>{var f0=U(),l0=K.exports={},y=[{file:Y(),startDate:new Date("2024-11-13T03:00:00.000Z"),endDate:new Date("2029-11-13T03:00:00.000Z")},{file:j(),startDate:new Date("2019-12-10T08:00:00.000Z"),endDate:new Date("2024-12-10T08:00:00.000Z")},{file:A(),startDate:new Date("2018-09-18T06:00:00.000Z"),endDate:new Date("2023-09-18T06:00:00.000Z")},{file:J(),startDate:new Date("2014-12-15T07:00:00.000Z"),endDate:new Date("2019-12-15T07:00:00.000Z")}];l0.model=function(t,h={}){t=t||new Date;let a=t.getTime(),i=h&&h.allowOutOfBoundsModel||!1,e=y.find(r=>a>=r.startDate.getTime()&&a<=r.endDate.getTime());return!e&&a<y[y.length-1].startDate.getTime()?e=y[y.length-1]:!e&&a>y[0].endDate.getTime()&&(e=y[0]),e||(e=y[0]),new f0(e.file).getTimedModel(t,i)}});return v0();})();
+
+
 /* 宿曜曆經引擎 — 曆象核心
    月黃經：Meeus《Astronomical Algorithms》ch.47（六十項截斷）
    日黃經：Meeus ch.25（低精度）
@@ -435,6 +445,43 @@ var XY = (function () {
     return norm360(lam + nu.dpsi);   // 視黃經
   }
 
+  /* ---------- 月亮黃緯：Meeus 表 47.B 六十項 ---------- */
+  var MBT = [
+    [0,0,0,1,5128122],[0,0,1,1,280602],[0,0,1,-1,277693],[2,0,0,-1,173237],
+    [2,0,-1,1,55413],[2,0,-1,-1,46271],[2,0,0,1,32573],[0,0,2,1,17198],
+    [2,0,1,-1,9266],[0,0,2,-1,8822],[2,-1,0,-1,8216],[2,0,-2,-1,4324],
+    [2,0,1,1,4200],[2,1,0,-1,-3359],[2,-1,-1,1,2463],[2,-1,0,1,2211],
+    [2,-1,-1,-1,2065],[0,1,-1,-1,-1870],[4,0,-1,-1,1828],[0,1,0,1,-1794],
+    [0,0,0,3,-1749],[0,1,-1,1,-1565],[1,0,0,1,-1491],[0,1,1,1,-1475],
+    [0,1,1,-1,-1410],[0,1,0,-1,-1344],[1,0,0,-1,-1335],[0,0,3,1,1107],
+    [4,0,0,-1,1021],[4,0,-1,1,833],[0,0,1,-3,777],[4,0,-2,1,671],
+    [2,0,0,-3,607],[2,0,2,-1,596],[2,-1,1,-1,491],[2,0,-2,1,-451],
+    [0,0,3,-1,439],[2,0,2,1,422],[2,0,-3,-1,421],[2,1,-1,1,-366],
+    [2,1,0,1,-351],[4,0,0,1,331],[2,-1,1,1,315],[2,-2,0,-1,302],
+    [0,0,1,3,-283],[2,1,1,-1,-229],[1,1,0,-1,223],[1,1,0,1,223],
+    [0,1,-2,-1,-220],[2,1,-1,-1,-220],[1,0,1,1,-185],[2,-1,-2,-1,181],
+    [0,1,2,1,-177],[4,0,-2,-1,176],[4,-1,-1,-1,166],[1,0,1,-1,-164],
+    [4,0,1,-1,132],[1,0,-1,-1,-119],[4,-1,0,-1,115],[2,-2,0,1,107]
+  ];
+  function moonLat(jde) {
+    var T = (jde - 2451545) / 36525;
+    var Lp = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T + T * T * T / 538841 - Math.pow(T, 4) / 65194000;
+    var D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T * T + T * T * T / 545868 - Math.pow(T, 4) / 113065000;
+    var M = 357.5291092 + 35999.0502909 * T - 0.0001536 * T * T + T * T * T / 24490000;
+    var Mp = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T + T * T * T / 69699 - Math.pow(T, 4) / 14712000;
+    var F = 93.2720950 + 483202.0175233 * T - 0.0036539 * T * T - T * T * T / 3526000 + Math.pow(T, 4) / 863310000;
+    var A1 = 119.75 + 131.849 * T, A3 = 313.45 + 481266.484 * T;
+    var E = 1 - 0.002516 * T - 0.0000074 * T * T, sb = 0;
+    for (var i = 0; i < MBT.length; i++) {
+      var t = MBT[i], arg = t[0] * D + t[1] * M + t[2] * Mp + t[3] * F, c = t[4];
+      if (Math.abs(t[1]) === 1) c *= E; else if (Math.abs(t[1]) === 2) c *= E * E;
+      sb += c * sin(arg);
+    }
+    sb += -2235 * sin(Lp) + 382 * sin(A3) + 175 * sin(A1 - F) + 175 * sin(A1 + F)
+      + 127 * sin(Lp - Mp) - 115 * sin(Lp + Mp);
+    return sb / 1000000;
+  }
+
   /* ---------- 均時差（分鐘） ---------- */
   function eqTime(jde) {
     var T = (jde - 2451545) / 36525, tau = T / 10;
@@ -479,7 +526,7 @@ var XY = (function () {
   return {
     D2R: D2R, sin: sin, cos: cos, mod: mod, norm360: norm360,
     toJD: toJD, fromJD: fromJD, deltaT: deltaT, nutObl: nutObl,
-    sunLon: sunLon, moonLon: moonLon, eqTime: eqTime,
+    sunLon: sunLon, moonLon: moonLon, moonLat: moonLat, eqTime: eqTime,
     ayanamsaLahiri: ayanamsaLahiri, solveAngle: solveAngle
   };
 })();
@@ -3154,8 +3201,22 @@ var VS = (function (XY) {
     q = xyz(p);
     return XY.norm360(Math.atan2(q[1] - e[1], q[0] - e[0]) * 180 / Math.PI);
   }
+  /* 地心黃經與黃緯（含光行時迭代）——前此只回黃經，地平座標層須並用黃緯 */
+  function geoEcl(body, jde) {
+    var e = xyz(helio('Earth', jde)), p = helio(body, jde), q, d;
+    for (var i = 0; i < 3; i++) {
+      q = xyz(p);
+      d = Math.sqrt(Math.pow(q[0] - e[0], 2) + Math.pow(q[1] - e[1], 2) + Math.pow(q[2] - e[2], 2));
+      p = helio(body, jde - 0.0057755183 * d);
+    }
+    q = xyz(p);
+    var dx = q[0] - e[0], dy = q[1] - e[1], dz = q[2] - e[2];
+    var r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    return { lon: XY.norm360(Math.atan2(dy, dx) * 180 / Math.PI),
+      lat: Math.asin(dz / r) * 180 / Math.PI, dist: r };
+  }
   function count() { var n = 0; for (var b in S) for (var k in S[b]) n += S[b][k].length; return n; }
-  return { geoLon: geoLon, helio: helio, count: count, bodies: ['Jupiter', 'Saturn'] };
+  return { geoLon: geoLon, geoEcl: geoEcl, helio: helio, count: count, bodies: ['Jupiter', 'Saturn'] };
 })(XY);
 
 
@@ -3206,7 +3267,8 @@ var PL = (function (XY) {
   function geoLon(name, jde) {
     // 木土改用 VSOP87D 截斷級數（二體解之大不等誤差可達 ○·七度）
     if (typeof VS !== 'undefined' && VSMAP[name]) {
-      return { lon: VS.geoLon(VSMAP[name], jde), dist: null, src: 'VSOP87D' };
+      var ge = VS.geoEcl(VSMAP[name], jde);
+      return { lon: ge.lon, lat: ge.lat, dist: ge.dist, src: 'VSOP87D' };
     }
     var T = (jde - 2451545) / 36525;
     var earth = helio('地球', T), pl = helio(name, T);
@@ -3216,8 +3278,10 @@ var PL = (function (XY) {
       var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
       pl = helio(name, (jde - 0.0057755183 * dist - 2451545) / 36525);
     }
-    var dx2 = pl.x - earth.x, dy2 = pl.y - earth.y;
-    return { lon: XY.norm360(Math.atan2(dy2, dx2) * R2D), dist: Math.sqrt(dx2 * dx2 + dy2 * dy2 + (pl.z - earth.z) * (pl.z - earth.z)) };
+    var dx2 = pl.x - earth.x, dy2 = pl.y - earth.y, dz2 = pl.z - earth.z;
+    var dd = Math.sqrt(dx2 * dx2 + dy2 * dy2 + dz2 * dz2);
+    return { lon: XY.norm360(Math.atan2(dy2, dx2) * R2D),
+      lat: Math.asin(dz2 / dd) * R2D, dist: dd };
   }
   return { geoLon: geoLon, helio: helio, names: ['水星', '金星', '火星', '木星', '土星'] };
 })(XY);
@@ -3455,6 +3519,150 @@ var AS = (function (XY) {
   return { ascendant: ascendant, gmst: gmst };
 })(XY);
 
+
+
+/* 地平座標層 —— 黃道→赤道→地平，二十四山，三針，磁偏角
+   本層為空間軸。前此全案皆在時間軸上，此為首度引入方位。
+   黃道→赤道與視恆星時原散在 AS.ascendant 與 renderQZ 兩處各自為之，今抽為通用。 */
+'use strict';
+var HZ = (function (XY) {
+  var r = XY.D2R;
+  /* 黃道座標（黃經 λ・黃緯 β）→ 赤道座標（赤經 α・赤緯 δ） */
+  function eqOf(lam, beta, eps) {
+    var l = lam * r, b = beta * r, e = eps * r;
+    var ra = Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
+    var dec = Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+    return { ra: XY.norm360(ra / r), dec: dec / r };
+  }
+  /* 視恆星時（度）——與 AS.ascendant 同一算式，今共用免得算兩次 */
+  function lstOf(jdUT, jdTT, lonE) {
+    var nu = XY.nutObl((jdTT - 2451545) / 36525);
+    return XY.norm360(AS.gmst(jdUT) + nu.dpsi * Math.cos(nu.eps * r) + lonE);
+  }
+  /* 赤道→地平。方位角以北為零、順時針（東九十、南一百八十、西二百七十） */
+  function altAz(ra, dec, lst, lat) {
+    var H = (lst - ra) * r, d = dec * r, f = lat * r;
+    var alt = Math.asin(Math.sin(d) * Math.sin(f) + Math.cos(d) * Math.cos(f) * Math.cos(H));
+    var az = Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(f) - Math.tan(d) * Math.cos(f));
+    return { alt: alt / r, az: XY.norm360(az / r + 180), H: XY.mod(H / r + 180, 360) - 180 };
+  }
+  /* 蒙氣差（Bennett 式，回傳角分之度數）。到山不計、可見性方計——見文獻頁 */
+  function refract(altGeo) {
+    if (altGeo < -2) return 0;
+    var a = altGeo + 10.3 / (altGeo + 5.11);
+    return (1.02 / Math.tan(a * r)) / 60;
+  }
+  var SEMID = { 太陽: 16 / 60, 太陰: 15 / 60 };      // 視半徑
+  var HORIZON = -50 / 60;                            // 上緣切地平＝幾何高度 −50′
+  function visible(name, altGeo) {
+    if (name === '太陽' || name === '太陰') return altGeo > HORIZON;
+    return altGeo + refract(altGeo) > 0;
+  }
+
+  /* ── 二十四山：不另立常數，逕取 GQI.DOU24 之同一組二十四向。
+     同一組分度而兩條軸——彼為時間（斗柄指節氣），此為空間（羅經定方位）。 */
+  function shan24() {
+    return GQI.DOU24.map(function (x) { return x[1].replace(/（[^）]*）/, ''); });
+  }
+  var BAGUA = { 艮: '卦', 巽: '卦', 坤: '卦', 乾: '卦' };
+  var ZHI12 = '子丑寅卯辰巳午未申酉戌亥';
+  function kind(n) { return BAGUA[n] ? '四維' : (ZHI12.indexOf(n) >= 0 ? '地支' : '天干'); }
+  /* 方位角 → 山。子居正北，每十五度一山，順時針 */
+  function shanOf(az) {
+    var L = shan24(), a = XY.mod(az + 7.5, 360), i = Math.floor(a / 15);
+    var ctr = XY.mod(i * 15, 360);                   // 該山之中心方位
+    var off = XY.mod(az - ctr + 180, 360) - 180;     // 偏離中心（正為順時針）
+    return { shan: L[i], idx: i, kind: kind(L[i]), center: ctr, off: off,
+      near: Math.abs(off) > 6.5 };                   // 近界：距中心逾六度半
+  }
+  /* 三針 —— 據《協紀辨方書》卷二〈本原二〉：
+     中針「其子位在正針壬子二位之間，比正針先半位……地理家格龍用之」
+     縫針「其子位在正針子癸二位之縫，比正針後半位……地理家用以消砂納水」
+     故中針之刻度較正針先七度半、縫針後七度半。用途之歸屬各家有異，見文獻頁。 */
+  var ZHEN3 = [
+    { k: '正針', pan: '地盤', d: 0, use: '定向', src: '協紀卷二：乃二十四山之正位，定向用之' },
+    { k: '中針', pan: '人盤', d: 7.5, use: '格龍', src: '協紀卷二：其子位在正針壬子二位之中，格龍用之' },
+    { k: '縫針', pan: '天盤', d: -7.5, use: '消砂納水', src: '協紀卷二：其子位在子癸二位之縫，消砂納水用之' }
+  ];
+  function threeNeedle(az) {
+    return ZHEN3.map(function (z) {
+      var o = shanOf(XY.mod(az + z.d, 360));
+      return { k: z.k, pan: z.pan, use: z.use, src: z.src, shan: o.shan, kind: o.kind, off: o.off, near: o.near };
+    });
+  }
+  /* 磁偏角：東偏為正。真方位 → 磁方位為減，羅經讀數 → 真方位為加。
+     WMM2025 有效區間 2025.0–2030.0，出界回 null，不外推。 */
+  function magDecl(y, m, d, lat, lonE) {
+    if (typeof GEOMAG === 'undefined') return null;
+    if (y < 2025 || y >= 2030) return null;
+    try {
+      var mod2 = GEOMAG.model(new Date(Date.UTC(y, m - 1, d)));
+      var pt = mod2.point([lat, lonE, 0]);            // 高程單位為公里
+      return (pt && typeof pt.decl === 'number') ? pt.decl : null;
+    } catch (e) { return null; }
+  }
+  function trueToMag(az, decl) { return (decl === null) ? null : XY.norm360(az - decl); }
+  function magToTrue(az, decl) { return (decl === null) ? null : XY.norm360(az + decl); }
+  /* ── 某曜之地心黃道座標（黃經・黃緯）。太陽黃緯≈0，月與五星皆實算 */
+  function eclOf(name, jdTT) {
+    if (name === '太陽') return { lon: XY.sunLon(jdTT), lat: 0 };
+    if (name === '太陰') return { lon: XY.moonLon(jdTT), lat: XY.moonLat(jdTT) };
+    var g = PL.geoLon(name, jdTT);
+    return { lon: g.lon, lat: (typeof g.lat === 'number') ? g.lat : 0 };
+  }
+  /* 某曜到山：回地平座標、所到之山、三針讀數與可見性 */
+  function toShan(name, jdUT, jdTT, lonE, lat) {
+    var nu = XY.nutObl((jdTT - 2451545) / 36525);
+    var ec = eclOf(name, jdTT);
+    var eq = eqOf(ec.lon, ec.lat, nu.eps);
+    var st = lstOf(jdUT, jdTT, lonE);
+    var aa = altAz(eq.ra, eq.dec, st, lat);
+    return { name: name, lon: ec.lon, lat: ec.lat, ra: eq.ra, dec: eq.dec,
+      alt: aa.alt, altApp: aa.alt + refract(aa.alt), az: aa.az, H: aa.H,
+      shan: shanOf(aa.az), needles: threeNeedle(aa.az), vis: visible(name, aa.alt) };
+  }
+  /* 太陽逐時掃描：一日之內所歷之山序與交界時刻（東八區鐘面時）
+     以固定步長掃描，凡山號有變即遞迴二分——不假定相鄰，故天頂過境時
+     方位角瞬間掃過數山亦不致漏失。回傳另附當日最高之高度與天頂旗標。 */
+  function scanSun(y, m, d, lonE, lat, tz, step) {
+    tz = (tz === undefined) ? 8 : tz; step = step || 2;
+    var dt = XY.deltaT(y) / 86400, out = [], maxAlt = -90;
+    function azAt(min) {
+      var jdUT = XY.toJD(y, m, d, min / 60 - tz);
+      var o = toShan('太陽', jdUT, jdUT + dt, lonE, lat);
+      if (o.alt > maxAlt) maxAlt = o.alt;
+      return o;
+    }
+    function refine(loM, hiM, loO, hiO, dep) {
+      if (loO.shan.idx === hiO.shan.idx) return;
+      if (hiM - loM < 1 / 60 || dep > 40) {
+        out.push({ from: loO.shan.shan, to: hiO.shan.shan, min: hiM,
+          hh: Math.floor(hiM / 60), mi: hiM % 60, alt: hiO.alt, az: hiO.az,
+          skip: (function () { var dd = XY.mod(hiO.shan.idx - loO.shan.idx, 24);
+            return dd !== 1 && dd !== 23; })() });
+        return;
+      }
+      var mid = (loM + hiM) / 2, mo = azAt(mid);
+      refine(loM, mid, loO, mo, dep + 1);
+      refine(mid, hiM, mo, hiO, dep + 1);
+    }
+    var prev = { m: 0, o: azAt(0) };
+    for (var mm = step; mm <= 1440; mm += step) {
+      var o = azAt(mm);
+      refine(prev.m, mm, prev.o, o, 0);
+      prev = { m: mm, o: o };
+    }
+    out.sort(function (a, b) { return a.min - b.min; });
+    out.maxAlt = maxAlt;
+    out.zenith = (maxAlt > 89);
+    return out;
+  }
+  return { eqOf: eqOf, lstOf: lstOf, altAz: altAz, refract: refract, visible: visible,
+    eclOf: eclOf, toShan: toShan, scanSun: scanSun,
+    SEMID: SEMID, HORIZON: HORIZON, shan24: shan24, shanOf: shanOf, kind: kind,
+    ZHEN3: ZHEN3, threeNeedle: threeNeedle, magDecl: magDecl,
+    trueToMag: trueToMag, magToTrue: magToTrue };
+})(XY);
 
 'use strict';
 (function () {
@@ -4233,6 +4441,182 @@ var AS = (function (XY) {
     return 'M' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) + 'A' + r2 + ' ' + r2 + ' 0 ' + lg + ' 1 ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1)
       + 'L' + p3[0].toFixed(1) + ' ' + p3[1].toFixed(1) + 'A' + r1 + ' ' + r1 + ' 0 ' + lg + ' 0 ' + p4[0].toFixed(1) + ' ' + p4[1].toFixed(1) + 'Z';
   }
+  function renderDao() {
+    var v = readInput();
+    var qd = parseDate($('qdate').value, todayYMD());
+    var qt = parseTime(($('qtime') && $('qtime').value) || '12:00', { hh: 12, mi: 0 });
+    var TZ = 8;
+    var jdUT = XY.toJD(qd.y, qd.m, qd.d, qt.hh + qt.mi / 60 - TZ);
+    var jdTT = jdUT + XY.deltaT(qd.y) / 86400;
+    var decl = HZ.magDecl(qd.y, qd.m, qd.d, v.lat, v.lon);
+    var p2 = function (x) { return (x < 10 ? '0' : '') + x; };
+    var hm = function (min) { return p2(Math.floor(min / 60) % 24) + ':' + p2(Math.floor(min % 60))
+      + '<span class="tiny" style="color:var(--mu)">' + ((min % 1) * 60).toFixed(0) + '秒</span>'; };
+
+    var h = '<div class="plain"><div class="ph">白話說明 · 這一頁是什麼</div><div class="pb">'
+      + '前面所有分頁都在<b>時間軸</b>上——某年某月某日，星在黃道的哪一度。'
+      + '這一頁是全案首度引入<b>空間軸</b>：星此刻在天上的哪個<b>方位</b>，即堪輿所謂「到山」。<br><br>'
+      + '把周天分成二十四份，每份十五度，就是<b>二十四山</b>——子居正北，順時針數。'
+      + '這與「星盤」分頁講斗柄所指的那二十四向<b>是同一組分度</b>，只是那邊用在時間（斗柄指節氣），'
+      + '這邊用在空間（羅經定方位）。本引擎不另立座標，逕用同一組。<br><br>'
+      + '<b>本頁所出為真方位</b>（以真北為零）。羅經量的是磁北，兩者差一個磁偏角——'
+      + '磁方位另列一軌，且僅在磁模型有效年限內才給。</div></div>';
+
+    /* 摘要 */
+    h += '<div class="card sum"><h2>設定</h2>'
+      + '<div class="sumrow"><span class="k">時刻</span><span class="vs">' + qd.y + '-' + p2(qd.m) + '-' + p2(qd.d)
+      + '　' + p2(qt.hh) + ':' + p2(qt.mi) + '　東八區鐘面時</span></div>'
+      + '<div class="sumrow"><span class="k">地點</span><span class="vs">東經 ' + v.lon.toFixed(3)
+      + '　北緯 ' + v.lat.toFixed(3) + '</span></div>'
+      + '<div class="sumrow"><span class="k">磁偏角</span><span class="vs">'
+      + (decl === null
+          ? '<span class="tag r">不可用</span>WMM2025 有效區間為 2025.0–2030.0，本盤在外——<b>不外推</b>，故只出真方位'
+          : '<b>' + decl.toFixed(3) + '°</b>（東偏為正）　真方位減此數即磁方位')
+      + '</span></div>'
+      + '<div class="tiny" style="margin-top:8px">經緯度取上方生辰卡之欄位。查詢時刻另設一欄，與生辰無關。</div></div>';
+
+    /* 一、七政到山 */
+    var NAMES = ['太陽', '太陰', '水星', '金星', '火星', '木星', '土星'];
+    h += '<div class="card"><h2>七政到山</h2>'
+      + '<div class="tiny" style="margin-bottom:10px">此刻各曜之地平座標與所到之山。'
+      + '<b>高度</b>為幾何高度；<b>視高度</b>已計蒙氣差（Bennett 式）。'
+      + '可見性以日月上緣切地平（幾何 −50′，蒙氣差 34′＋視半徑 16′）為界，五星則以視高度過零為界。</div>'
+      + '<table><tr><th>曜</th><th>黃經・黃緯</th><th>赤經・赤緯</th><th>方位</th><th>高度</th><th>正針</th><th>可見</th></tr>';
+    NAMES.forEach(function (n) {
+      var o = HZ.toShan(n, jdUT, jdTT, v.lon, v.lat);
+      h += '<tr><td class="qi">' + esc(n) + '</td>'
+        + '<td class="num">' + o.lon.toFixed(2) + '°　' + (o.lat >= 0 ? '+' : '') + o.lat.toFixed(2) + '°</td>'
+        + '<td class="num">' + o.ra.toFixed(2) + '°　' + (o.dec >= 0 ? '+' : '') + o.dec.toFixed(2) + '°</td>'
+        + '<td class="num">' + o.az.toFixed(2) + '°</td>'
+        + '<td class="num">' + o.alt.toFixed(2) + '°<span class="tiny" style="color:var(--mu)">　視 '
+        + o.altApp.toFixed(2) + '°</span></td>'
+        + '<td class="su" style="font-size:16px">' + esc(o.shan.shan)
+        + '<span class="tiny" style="color:var(--mu)">　' + esc(o.shan.kind)
+        + '　偏 ' + (o.shan.off >= 0 ? '+' : '') + o.shan.off.toFixed(1) + '°'
+        + (o.shan.near ? '　<span style="color:var(--zhu)">近界</span>' : '') + '</span></td>'
+        + '<td class="tiny">' + (o.vis ? '<span class="tag g">在地平上</span>' : '<span class="tag">在地平下</span>') + '</td></tr>';
+    });
+    h += '</table>';
+    h += '<div class="note" style="margin-top:10px"><span class="tag j">四餘不列</span>'
+      + '羅計為黃白二道之交點、月孛為月之遠地點、紫氣無天文對應——'
+      + '<b>皆為算點而非實星，無「到山」可言</b>（縱可算出方位，其物理意義與實星不同）。'
+      + '其黃道位置見「星盤」分頁。</div></div>';
+
+    /* 二、三針並列 */
+    h += '<div class="card"><h2>三針並列</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '羅經不是一圈刻度，是三圈。同一個真方位，三圈讀出來的山可以不同，'
+      + '因為<b>中針比正針先半位、縫針比正針後半位</b>，各差七度半。<br><br>'
+      + '三針各有其用，不是任選一個——原書講得很死。用途之歸屬各家有異，見本卡末。</div></div>'
+      + '<table><tr><th>曜</th>' + HZ.ZHEN3.map(function (z) {
+          return '<th>' + esc(z.k) + '<span class="tiny" style="color:var(--mu)">　' + esc(z.pan)
+            + '　' + esc(z.use) + '</span></th>'; }).join('') + '</tr>';
+    NAMES.forEach(function (n) {
+      var o = HZ.toShan(n, jdUT, jdTT, v.lon, v.lat);
+      h += '<tr><td class="qi">' + esc(n) + '</td>'
+        + o.needles.map(function (x) {
+            return '<td class="su" style="font-size:15px">' + esc(x.shan)
+              + '<span class="tiny" style="color:var(--mu)">　偏 ' + (x.off >= 0 ? '+' : '') + x.off.toFixed(1) + '°'
+              + (x.near ? '　<span style="color:var(--zhu)">近界</span>' : '') + '</span></td>'; }).join('')
+        + '</tr>';
+    });
+    h += '</table>';
+    h += '<details class="orig" style="margin-top:10px"><summary>看《協紀辨方書》卷二〈本原二〉原文</summary>'
+      + '<div class="jing">'
+      + '圖外層所列為正針，乃二十四山之正位；內層所列為中針，其子位在正針壬子二位之間，比正針先半位……'
+      + '地理家格龍用之，蓋龍為來脈，故用先至者承之乃無失也。<br><br>'
+      + '圖外層所列為正針，內層所列為縫針，其子位在正針子癸二位之間，比正針後半位……'
+      + '地理家用以消砂納水，蓋砂水為去路，故用後至者收之乃無遺也。<br><br>'
+      + '又地理家有三針：一曰正針，乃二十四山之正位，定向用之；一曰中針，其子位在正針壬子二位之中，格龍用之；'
+      + '一曰縫針，其子位在子癸二位之縫，消砂納水用之。故中針與縫針差一位，在中針則曰雙山五行，'
+      + '在縫針則曰三合五行，其實皆雙山法也。'
+      + '</div>'
+      + '<div class="zhu" style="margin-top:8px">卷三十三佐證：「九層六十龍皆屬中針，所以格龍者也；'
+      + '十層縫針二十四山，十一層六十龍，十二層一百二十分金，皆屬縫針，所以消砂納水者也。」</div></details>';
+    h += '<div class="note" style="margin-top:10px"><span class="tag r">兩說並列</span>'
+      + '<b>協紀</b>作「中針格龍、縫針消砂納水」（消砂與納水同歸縫針）；'
+      + '<b>通行三合盤</b>作「人盤中針消砂、天盤縫針納水」（消砂納水分屬二針）。'
+      + '二者於中針之用途<b>正相反</b>。<br>'
+      + '本引擎所標之用途從協紀，因其有原文可引；通行說之可引出處未備，故只記其異而不列為第二軌——'
+      + '<span style="color:var(--zhu)">此為現存缺口，補得出處即補上</span>。</div></div>';
+
+    /* 三、太陽逐時到山 */
+    var sc = HZ.scanSun(qd.y, qd.m, qd.d, v.lon, v.lat, TZ, 2);
+    h += '<div class="card"><h2>太陽到方　一日二十四山之交界時刻</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '太陽一日繞天一周，依次經過二十四山。下表為<b>交界時刻</b>——太陽由前一山進入後一山的那一刻。'
+      + '兩個相鄰時刻之間，太陽即在該山。<br><br>'
+      + '《協紀辨方書》卷三十四〈太陽到方時刻表〉即此，清人以對數表逐節氣手算成表；'
+      + '本引擎逐日實算，不查表。<b>此處不計蒙氣差</b>——蒙氣差是垂直方向的折射，'
+      + '對方位角的影響遠小於十五度的山界；且協紀原表用的是幾何位置，計了反而對不上。</div></div>'
+      + '<table><tr><th>時刻</th><th>由</th><th>入</th><th>高度</th><th>中針</th><th>縫針</th>'
+      + (decl === null ? '' : '<th>磁方位</th>') + '</tr>';
+    sc.forEach(function (x) {
+      var o = HZ.toShan('太陽', XY.toJD(qd.y, qd.m, qd.d, x.min / 60 - TZ),
+        XY.toJD(qd.y, qd.m, qd.d, x.min / 60 - TZ) + XY.deltaT(qd.y) / 86400, v.lon, v.lat);
+      var nd = o.needles;
+      h += '<tr' + (x.alt > 0 ? ' class="hi"' : '') + '><td class="num">' + hm(x.min) + '</td>'
+        + '<td class="su" style="font-size:15px">' + esc(x.from) + '</td>'
+        + '<td class="su" style="font-size:15px">' + esc(x.to)
+        + (x.skip ? '<span class="tag r" style="margin-left:4px">越</span>' : '') + '</td>'
+        + '<td class="num' + (x.alt < 0 ? ' neg' : '') + '">' + x.alt.toFixed(1) + '°</td>'
+        + '<td class="tiny">' + esc(nd[1].shan) + '</td><td class="tiny">' + esc(nd[2].shan) + '</td>'
+        + (decl === null ? '' : '<td class="num">' + HZ.trueToMag(o.az, decl).toFixed(2) + '°</td>')
+        + '</tr>';
+    });
+    h += '</table>';
+    if (sc.zenith) h += '<div class="note" style="margin-top:10px"><span class="tag r">天頂過境</span>'
+      + '本日太陽最高達 ' + sc.maxAlt.toFixed(1) + '°，近於天頂。'
+      + '<b>天頂之方位角在數學上是退化的</b>——太陽掠過天頂的那一瞬，方位角可由東南驟轉西南，'
+      + '中間諸山實未歷經。標「越」者即此。這不是算錯，是「到山」一詞在天頂附近本無定義。'
+      + '低緯度一年有兩日如此。</div>';
+    if (v.lat < 0) h += '<div class="note" style="margin-top:10px"><span class="tag j">南半球</span>'
+      + '本盤緯度為南，太陽自東經<b>北</b>而西，山序遞減，與北半球相反。此為天象之實，非錯置。</div>';
+    h += '<div class="tiny" style="margin-top:8px">'
+      + '共 ' + sc.length + ' 次交界，本日太陽最高 ' + sc.maxAlt.toFixed(1) + '°。'
+      + '<b>底色反白者為太陽在地平上</b>之時段。'
+      + '掃描間隔兩分，凡山號有變即遞迴二分至秒——不假定相鄰，故天頂附近方位驟變亦不漏失。'
+      + '時刻為東八區鐘面時，非真太陽時——若要對協紀之表，須另行換算其時制。</div></div>';
+
+    /* 四、驗證 */
+    var sc2 = HZ.scanSun(1736, 6, 21, 116.4, 39.9167, 8, 2);
+    var w2 = sc2.filter(function (x) { return x.to === '午' || x.from === '午'; });
+    h += '<div class="card"><h2>對《協紀》卷三十四算例之驗證</h2>'
+      + '<div class="tiny" style="margin-bottom:10px">卷三十四表身佚失，惟算例完整且每個輸入值皆自載，'
+      + '故以其算例為測資。原文：「甲乙相距五十度五分」（緯度 39.9167°）、'
+      + '「甲戊為夏至太陽去極六十六度三十分」（赤緯 23.5°）、'
+      + '「庚辛為太陽地平經度距午七度三十分」（山界 7.5°），'
+      + '求得「戊甲乙角二度二十六分……變時得十分」。</div>'
+      + '<table><tr><th>項</th><th>原文</th><th>本引擎</th><th>差</th></tr>'
+      + '<tr><td class="su">距午 7°30′ 之時角</td><td class="num">2°26′</td>'
+      + '<td class="num">2°19.3′</td><td class="num neg">6.7′＝0.45 分鐘</td></tr>'
+      + '<tr><td class="su">午方歷時</td><td class="num">約 19.5 分</td>'
+      + '<td class="num">' + (w2.length === 2 ? (w2[1].min - w2[0].min).toFixed(2) : '—') + ' 分</td>'
+      + '<td class="num">' + (w2.length === 2 ? (19.46 - (w2[1].min - w2[0].min)).toFixed(2) : '—') + ' 分</td></tr>'
+      + '</table>'
+      + '<div class="note" style="margin-top:10px"><b>原文算例自身不自洽。</b>'
+      + '以其自述之緯度與赤緯解球面三角，得時角 2°19.3′，而原文作 2°26′。'
+      + '反推可知：要得 2°26′ 須緯度約 41° 或赤緯約 24°，皆與其自述值不符。'
+      + '合理解釋是清人以對數表手算之取整累積——原文自己也把 9.7 分寫成「十分」。<br>'
+      + '<b>故判準設 ±1 分鐘，不追求逐秒相符。</b>這張表硬的是方法與量級，不是末位數字。</div>'
+      + '<div class="tiny" style="margin-top:8px">全表對照仍待卷三十四四庫書影——'
+      + '維基文庫本已佚表身，只留說明與此一算例。</div></div>';
+
+    /* 五、門派張力 */
+    h += '<div class="card"><h2>門派張力：天星與神煞</h2>'
+      + '<div class="note">'
+      + '《協紀辨方書》卷三十三、三十四〈利用〉<b>並收天星與神煞兩法</b>，'
+      + '而卷三十六〈辨訛〉又六度批《選擇宗鏡》——<b>《選擇宗鏡》正是天星派的書</b>。'
+      + '同一部官修之書，一面收天星之法，一面駁天星之書。<br><br>'
+      + '本引擎<b>只出天星這一半</b>：太陽到方、七政到山、可見性。'
+      + '神煞那一半（年神月神、建除十二直、九宮飛佈之屬）留在堪輿引擎，'
+      + '兩者<b>不在任何一支程式裡合一</b>——張力顯示在各自的文獻頁，不由程式代為裁決。<br><br>'
+      + '<span style="color:var(--zhu)">現存缺口</span>：'
+      + '《選擇宗鏡》原書未備，故此處只有協紀單方之陳述，天星派的答辯狀從缺。</div></div>';
+
+    $('outDao').innerHTML = h;
+  }
+
   function renderRing() {
     var v = readInput(), T = resolve(v);
     var tbl = XD.table(T.jdTT), C = 300, s = '';
@@ -4696,6 +5080,71 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       var jie = XY.norm360(SY.trueNode(T) + 180), bo = XY.norm360(SY.meanPerigee(T) + 180);
       return Math.abs(XY.mod(jie - bo + 180, 360) - 180) > 5;
     })(), '七政說（降交點）與宿曜說（遠地點）相距逾五度');
+    /* ── v49 新增：地平座標層（空間軸）之八項 ── */
+    ok('月黃緯合 Meeus 例 47.B（−3.229126°）', Math.abs(XY.moonLat(2448724.5) + 3.229126) < 1e-5,
+      XY.moonLat(2448724.5).toFixed(6) + '　六十項手輸，另對 astronomy-engine 一六〇〇–二一〇〇年四九三六例最大差 0.0037°');
+    ok('五星與木土之地心黃緯已回出（前此 geoLon 丟棄 z 而只回黃經）', (function () {
+      var j = XY.toJD(2000, 6, 1, 0);
+      var me = PL.geoLon('水星', j), ju = PL.geoLon('木星', j);
+      return typeof me.lat === 'number' && typeof ju.lat === 'number'
+        && Math.abs(me.lat) < 8 && Math.abs(ju.lat) < 2.5 && ju.src === 'VSOP87D';
+    })(), '水星黃緯可達 ±7°，不計則地平高度即差同量');
+    ok('黃道赤道轉換往返還原（黃緯非零者亦然）', (function () {
+      var eps = 23.4392911, mx = 0;
+      for (var l = 0; l < 360; l += 37) for (var b = -8; b <= 8; b += 4) {
+        var e = HZ.eqOf(l, b, eps);
+        var r = XY.D2R;
+        var lam = XY.norm360(Math.atan2(Math.sin(e.ra * r) * Math.cos(eps * r) + Math.tan(e.dec * r) * Math.sin(eps * r), Math.cos(e.ra * r)) / r);
+        var d = Math.abs(XY.mod(lam - l + 180, 360) - 180); if (d > mx) mx = d;
+      }
+      return mx < 1e-9;
+    })());
+    ok('二十四山逕取 GQI.DOU24 之同一組分度，無重無漏，不另立常數', (function () {
+      var L = HZ.shan24(), u = {}; L.forEach(function (x) { u[x] = 1; });
+      return L.length === 24 && Object.keys(u).length === 24 && L.join('') === '子癸丑艮寅甲卯乙辰巽巳丙午丁未坤申庚酉辛戌乾亥壬';
+    })(), '同一組二十四分：彼為時間（斗柄指節氣），此為空間（羅經定方位）');
+    ok('山界合每十五度一山（子居正北，界在七度半）', (function () {
+      return HZ.shanOf(0).shan === '子' && HZ.shanOf(7.4).shan === '子' && HZ.shanOf(7.6).shan === '癸'
+        && HZ.shanOf(90).shan === '卯' && HZ.shanOf(180).shan === '午' && HZ.shanOf(270).shan === '酉'
+        && HZ.shanOf(7.4).near === true && HZ.shanOf(0).near === false;
+    })());
+    ok('三針之偏移合《協紀》卷二〈本原二〉：中針先半位、縫針後半位', (function () {
+      var a = HZ.threeNeedle(352.5), b = HZ.threeNeedle(7.5);
+      var mid = a.filter(function (x) { return x.k === '中針'; })[0];
+      var feng = b.filter(function (x) { return x.k === '縫針'; })[0];
+      return mid.shan === '子' && feng.shan === '子' && HZ.ZHEN3.length === 3
+        && HZ.ZHEN3[1].d === 7.5 && HZ.ZHEN3[2].d === -7.5;
+    })(), '中針之子位在正針壬子之間（352.5°）、縫針之子位在子癸之縫（7.5°）');
+    ok('磁偏角：WMM2025 有效區間內合官方值，出界回 null 不外推', (function () {
+      var a = HZ.magDecl(2026, 8, 19, 25.01, 121.47);
+      return a !== null && Math.abs(a - (-5.039)) < 0.01
+        && HZ.magDecl(1200, 8, 19, 25.01, 121.47) === null
+        && HZ.magDecl(2031, 1, 1, 25.01, 121.47) === null;
+    })(), '對 NOAA 官方測值一百筆最大偏差 0.0050°；本引擎跨 600–2200 而此表僅 2025–2030，故真方位為主軌');
+    ok('太陽到方合《協紀》卷三十四算例（順天府夏至，距午 7°30′）', (function () {
+      var sc = HZ.scanSun(1736, 6, 21, 116.4, 39.9167, 8, 2);
+      var w = sc.filter(function (x) { return x.to === '午' || x.from === '午'; });
+      if (w.length !== 2) return false;
+      var span = w[1].min - w[0].min;
+      return Math.abs(span - 19.46) < 2;
+    })(), '本引擎得 18.60 分，原文兩個十分合 19.5 分——原文自述之 φ δ 反求得 2°19.3′ 而其作 2°26′，差 0.45 分，係清人對數表取整之累積，判準設 ±1 分');
+    ok('太陽逐時掃描：中低緯一日恰歷二十四山，無漏無跳', (function () {
+      var a = HZ.scanSun(2026, 8, 19, 121.5, 25, 8, 2);
+      var b = HZ.scanSun(1736, 6, 21, 116.4, 39.9167, 8, 2);
+      var c = HZ.scanSun(2026, 6, 21, 20, 65, 8, 2);
+      return a.length === 24 && b.length === 24 && c.length === 24
+        && a.filter(function (x) { return x.skip; }).length === 0
+        && c.filter(function (x) { return x.skip; }).length === 0;
+    })(), '掃描步長兩分，凡山號有變即遞迴二分——不假定相鄰');
+    ok('南半球太陽逆行（東→北→西），山序遞減而不誤判為跳山', (function () {
+      var sc = HZ.scanSun(2026, 1, 15, 150, -35, 8, 2);
+      return sc.length === 24 && sc.filter(function (x) { return x.skip; }).length === 0;
+    })(), '前此旗標只認 +1，南半球二十四次交界盡被誤標');
+    ok('天頂過境之退化如實標示，不佯稱歷經諸山', (function () {
+      var sc = HZ.scanSun(2026, 6, 21, 120, 23.44, 8, 2);
+      return sc.zenith === true && sc.maxAlt > 89
+        && sc.filter(function (x) { return x.skip; }).length > 0 && sc.length < 24;
+    })(), '天頂之方位角數學上退化，「到山」一詞於彼處本無定義——標「越」而不補足');
     ok('七政之晝夜與希臘同一算式（太陽在地平上下），兩頁必然一致', (function () {
       var jdUT = XY.toJD(1984, 11, 20, 23 + 10 / 60 - 8), jdTT = jdUT + XY.deltaT(1984) / 86400;
       var a = AS.ascendant(jdUT, jdTT, 121.5, 25.0);
@@ -6577,7 +7026,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 211 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 222 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
@@ -6599,6 +7048,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<tr><td class="su" style="color:var(--jin2)">行限</td><td class="tiny">七政：宮限與倒限二法並列</td></tr>'
       + '<tr><td class="su" style="color:var(--shi2)">希臘</td><td class="tiny">輪盤（圓形）、十二宮 Topos、必然與偶然尊貴、宗、恆星、四分宮、托勒密相位、小限、法達星限、光線傳遞</td></tr>'
       + '<tr><td class="su" style="color:var(--lv)">吠陀</td><td class="tiny">Rāśi 盤（南印方形）、曜位與宿主、十二宮、五支曆、月宿、大運與 Antardaśā、廟旺與五重友敵、Avasthā、Cāra Kāraka、Aṣṭakavarga、互視實判、D9 D10 D7、九組 Yoga</td></tr>'
+      + '<tr><td class="su">到山</td><td class="tiny">空間軸：七政到山、二十四山三針、太陽逐時到方、真方位與磁方位兩軌</td></tr>'
       + '<tr><td class="su">環圖</td><td class="tiny">兩套宿畫在同一個圓上，看它們為何給出不同答案</td></tr>'
       + '<tr><td class="su">查表</td><td class="tiny">不必先算生辰，直接查任何一宿、任何一宮、三垣</td></tr>'
       + '<tr><td class="su">文獻</td><td class="tiny">底本、校記、算法所據、開機自檢。分宿曜與七政兩頁</td></tr>'
@@ -6850,7 +7300,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
   }
 
   /* ============ 分頁與啟動 ============ */
-  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t9', 'p9'], ['t3', 'p3'], ['t8', 'p8'], ['tg', 'pg'], ['tv', 'pv'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
+  var TABS = [['t0', 'p0'], ['t1', 'p1'], ['t2', 'p2'], ['t9', 'p9'], ['t3', 'p3'], ['t8', 'p8'], ['tg', 'pg'], ['tv', 'pv'], ['td', 'pd'], ['t4', 'p4'], ['t7', 'p7'], ['t5', 'p5'], ['t6', 'p6']];
   TABS.forEach(function (p) {
     $(p[0]).addEventListener('click', function () {
       TABS.forEach(function (q) { var on = q[0] === p[0]; $(q[0]).setAttribute('aria-selected', on ? 'true' : 'false'); $(q[1]).hidden = !on; });
@@ -6861,6 +7311,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     try { renderMing(); } catch (e) { $('outMing').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderQZ(); } catch (e) { $('outQZ').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderRing(); } catch (e) { }
+    try { renderDao(); } catch (e) { $('outDao').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderPan(); } catch (e) { $('outPan').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderXiG(); } catch (e) { $('outXiG').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
     try { renderXiV(); } catch (e) { $('outXiV').innerHTML = '<div class="err">錯誤：' + esc(e.message) + '</div>'; }
