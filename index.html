@@ -1721,9 +1721,27 @@ var DZ = (function (XY) {
   }
   function ganOfYear(y) { return GAN[XY.mod(y - 4, 10)]; }
   function zhiOfYear(y) { return ZHI[XY.mod(y - 4, 12)]; }
+  /* 年干支以立春為界，非以元旦。太陽視黃經達 315° 即立春，逐年實算不查表。
+     前此逕以西曆年推，故立春前生者（約一月一日至二月四日）之年干支盡誤一位，
+     而神煞、天干化曜、三元祿、卦氣四層皆繫於年干——此為 v53 所修之實質錯誤。 */
+  var LCC = {};
+  function lichunJD(y) {
+    if (LCC[y] !== undefined) return LCC[y];
+    var t = null;
+    try { t = XYD.solarTerm(XY.toJD(y, 2, 4, 4), 315); } catch (e) { t = null; }
+    if (t === null) t = XY.toJD(y, 2, 4, 4);          // 求解失敗則退回概值
+    return (LCC[y] = t);
+  }
+  function ganZhiOfDate(y, m, d, hourLocal) {
+    var jd = XY.toJD(y, m, d, (hourLocal === undefined ? 12 : hourLocal) - 8);
+    var lc = lichunJD(y);
+    var yy = (jd < lc) ? y - 1 : y;
+    return { y: yy, gan: GAN[XY.mod(yy - 4, 10)], zhi: ZHI[XY.mod(yy - 4, 12)],
+      lichun: lc, before: (jd < lc) };
+  }
   function count() { return BYGAN.length + BYZHI.length; }
   return { GAN: GAN, ZHI: ZHI, BYGAN: BYGAN, BYZHI: BYZHI, TONGWEI: TONGWEI, BUZHI: BUZHI, byGan: byGan, byZhi: byZhi, tongwei: tongwei, buzhi: buzhi,
-    ganOfYear: ganOfYear, zhiOfYear: zhiOfYear, count: count };
+    ganOfYear: ganOfYear, zhiOfYear: zhiOfYear, ganZhiOfDate: ganZhiOfDate, lichunJD: lichunJD, count: count };
 })(XY);
 
 
@@ -4218,7 +4236,9 @@ var HZ = (function (XY) {
     // ── 天干化曜 ──
     var civY = XY.fromJD(T.jdUT + 8 / 24).y;
     var lunY = XYD.lunarOf(civY, XY.fromJD(T.jdUT + 8 / 24).m, XY.fromJD(T.jdUT + 8 / 24).d);
-    var ganY = HY.ganOfYear(lunY && lunY.month >= 11 ? civY : civY);
+    var civQ = XY.fromJD(T.jdUT + 8 / 24);
+    var GZQ = DZ.ganZhiOfDate(civQ.y, civQ.m, civQ.d, civQ.h);
+    var ganY = GZQ.gan;
     var hy = HY.of(ganY);
     if (hy && sunG) {
       var mzH = AM.anMing(sunG.zhi, AM.shiChen(v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0)));
@@ -4237,7 +4257,7 @@ var HZ = (function (XY) {
         + '例如甲年生人，火星化為「天祿」（主享祿）、木星化為「天福」（主獲福）；換成乙年，整組就往後移一位。<br><br>'
         + '原書另有一組吉凶星（文星、魁星、官星、印星、催官、祿神、喜神），以及<b>祿勳</b>——'
         + '「甲祿在寅，寅為崇勳」，即天干歸祿之宮。<br><br>'
-        + '本引擎只列對照與所落之宮，<b>不下斷語</b>。年干以西曆年推，未計立春前後之別。</div></div>';
+        + '本引擎只列對照與所落之宮，<b>不下斷語</b>。年干<b>以立春為界</b>，非以元旦。</div></div>';
       h += '<div class="note" style="margin-bottom:10px"><span class="tag j">祿勳</span>在 ' + esc(hy.祿勳) + ' 宮'
         + (zhiGongH[hy.祿勳] ? '（本盤之' + esc(zhiGongH[hy.祿勳]) + '宮）' : '') + '　——原書：天干歸祿，其氣自聚，故天干吉星以祿勳為主。</div>';
       h += '<table><tr><th>化曜</th><th>主</th><th>本盤何曜</th><th>落於</th></tr>';
@@ -4251,10 +4271,11 @@ var HZ = (function (XY) {
     }
     // ── 神煞（地支吉凶星例） ──
     if (sunG) {
-      var yy = XY.fromJD(T.jdUT + 8 / 24).y;
-      var gan2 = DZ.ganOfYear(yy), zhi2 = DZ.zhiOfYear(yy);
+      var gan2 = GZQ.gan, zhi2 = GZQ.zhi;
       var mzS = AM.anMing(sunG.zhi, AM.shiChen(v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0)));
       var miS = AM.ZHI.indexOf(mzS), z2g = {};
+      var lcNote = '年干支<b>以立春為界</b>（太陽視黃經達 315°，逐年實算不查表）'
+        + (GZQ.before ? '——本盤生於立春之前，故年干支取前一年之 <b>' + esc(GZQ.gan + GZQ.zhi) + '</b>。' : '。');
       ZG.GONG12.forEach(function (g, k) { z2g[AM.ZHI[XY.mod(miS - k, 12)]] = g; });
       h += '<div class="card"><h2>神煞　' + esc(gan2 + zhi2) + '年</h2>'
         + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
@@ -4281,12 +4302,12 @@ var HZ = (function (XY) {
         h += '<tr><td class="su">' + esc(x.name) + '</td><td class="tiny">' + esc(x.zhu) + '</td>'
           + '<td class="su">' + esc(x.zhi) + '</td><td class="tiny">' + esc(x.note) + '</td></tr>';
       });
-      h += '</table><div class="tiny" style="margin-top:8px">共 ' + (DZ.count() + DZ.TONGWEI.length) + ' 種（原書直載 ' + DZ.count() + '、依例補位 ' + DZ.TONGWEI.length + '）。年干支以西曆年推，未計立春前後之別。'
+      h += '</table><div class="tiny" style="margin-top:8px">共 ' + (DZ.count() + DZ.TONGWEI.length) + ' 種（原書直載 ' + DZ.count() + '、依例補位 ' + DZ.TONGWEI.length + '）。' + lcNote
         + '</div></div>';
     }
     // ── 卦氣・鬥杓・唐符 ──
     if (sunG) {
-      var gy = XY.fromJD(T.jdUT + 8 / 24).y, gg3 = DZ.ganOfYear(gy);
+      var gg3 = GZQ.gan;
       var qi = GQI.guaqi(gg3), db = GQI.doubiao(XY.sunLon(T.jdTT));
       var mzG = AM.anMing(sunG.zhi, AM.shiChen(v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0)));
       var miG = AM.ZHI.indexOf(mzG), z2gG = {};
@@ -4312,7 +4333,7 @@ var HZ = (function (XY) {
     }
     // ── 三元祿・天經地緯・職元・局主 ──
     if (sunG) {
-      var yg = DZ.ganOfYear(XY.fromJD(T.jdUT + 8 / 24).y);
+      var yg = GZQ.gan;
       var qz = GQI.guaqi(yg);
       var mzS = AM.anMing(sunG.zhi, AM.shiChen(v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0)));
       var miS3 = AM.ZHI.indexOf(mzS), z2g3 = {}, g2z3 = {};
@@ -4466,7 +4487,16 @@ var HZ = (function (XY) {
       + '這與「星盤」分頁講斗柄所指的那二十四向<b>是同一組分度</b>，只是那邊用在時間（斗柄指節氣），'
       + '這邊用在空間（羅經定方位）。本引擎不另立座標，逕用同一組。<br><br>'
       + '<b>本頁所出為真方位</b>（以真北為零）。羅經量的是磁北，兩者差一個磁偏角——'
-      + '磁方位另列一軌，且僅在磁模型有效年限內才給。</div></div>';
+      + '磁方位另列一軌，且僅在磁模型有效年限內才給。</div></div>'
+      + '<div class="card"><h2>天星擇日是什麼——協紀自己的定義</h2>'
+      + '<div class="jing" style="font-size:16px">'
+      + '且擇日而取日月星辰到山向者，喜山向之光輝也，豈謂日月星辰中有神仙乎。'
+      + '</div><div class="zhu" style="margin-top:8px">《欽定協紀辨方書》卷三十六〈辨訛〉</div>'
+      + '<div class="note" style="margin-top:10px">'
+      + '此句出自協紀駁斥諸家星曜之文，卻正好把天星擇日定了性：'
+      + '<b>取的是實測的光照方位，不是星神。</b>'
+      + '本頁所算者即此——太陽此刻照在哪一山、七政此刻在天上何方，'
+      + '皆為可測之天象，非神煞之名目。</div></div>';
 
     /* 摘要 */
     h += '<div class="card sum"><h2>設定</h2>'
@@ -4550,6 +4580,13 @@ var HZ = (function (XY) {
       + '本引擎<b>兩軌並列，不裁決</b>——上表欄首已分列二說之用途，'
       + '所量之刻度則同（中針先半位、縫針後半位），故讀數不受影響，'
       + '受影響的只是「這個讀數該拿去做什麼」。<br>'
+      + '<div class="tiny" style="margin-top:8px;color:var(--mu)">'
+      + '<b>正負號之約定</b>：本引擎所存之 ±7.5° 為「<b>讀數偏移</b>」——'
+      + '欲知中針所指，取真方位<b>加</b> 7.5° 再查山；欲知縫針所指，取真方位<b>減</b> 7.5°。'
+      + '若以「盤面刻度之旋轉」為準則正負相反（中針盤旋 −7.5°、縫針盤旋 +7.5°），'
+      + '二者所指之實同。故本引擎之自檢<b>不以正負號為準，而以物理錨點為準</b>：'
+      + '中針之子位須落於真方位 352.5°、縫針之子位須落於 7.5°。'
+      + '見之而欲「訂正」正負號者，請先看自檢。</div>'
       + '<span class="tiny" style="color:var(--mu)">'
       + '通行說之清代原典為《羅經透解》（清 王道亨、王方智輯撰，約道光四年，三卷），'
       + '本引擎未備其書，故引今人綜述而不逕引原典——'
@@ -4644,10 +4681,45 @@ var HZ = (function (XY) {
       + '這些引文<b>由對手選錄</b>——可能斷章，可能改字，可能只取其易駁者。'
       + '故本引擎於此處<b>兩欄分列</b>：一欄所引之語，一欄協紀之駁語，'
       + '並標明前者為<b>敵證</b>，不得逕作天星派之定說。<br><br>'
-      + '<span style="color:var(--zhu)">現存缺口</span>：'
-      + '卷三十六〈辨訛〉之原文未備，故此二欄暫空。'
-      + '<b>而取得《選擇宗鏡》原書之理由，也應由此改寫</b>——'
-      + '不是為了聽它答辯（辦不到），是為了<b>校勘協紀之引文是否忠實</b>（辦得到，得書即可辦）。</div>';
+      + '<b>六條非一味攻訐——其中第四條協紀明白贊同。</b>'
+      + '若只錄其駁而略其許，即是把並列做成了單方否定。</div>'
+      + '<table style="margin-top:10px"><tr><th>條</th><th>所引之語（敵證）</th><th>協紀之斷語</th><th>性質</th></tr>'
+      + '<tr><td class="su">一<br><span class="tiny">諸家鑾駕星曜</span></td>'
+      + '<td class="tiny">宗鏡自身亦云：「有五六玉皇終年各守一方絕不移易，'
+      + '是六朝之分皇、五代之各帝也，有是理乎」</td>'
+      + '<td class="tiny">斥玉皇鑾駕、紫微帝星、都天寶照等名「既非實有此星，又且必無此理」「皆術士捏造」。'
+      + '<b>協紀反引宗鏡之語為助</b>——此條非駁其全書，是駁其所載之星名</td>'
+      + '<td class="tiny"><span class="tag g">部分相合</span></td></tr>'
+      + '<tr><td class="su">二<br><span class="tiny">尊星帝星</span></td>'
+      + '<td class="tiny">宗鏡言尊帝二星到山到向，能壓一切凶煞</td>'
+      + '<td class="tiny">考其起例「甚無義理，宜乎臺本之不用也」。'
+      + '並指其年例上元下元甲子起乾六、中元起坎一，推之則「下元甲子六十年既盡而再起上元'
+      + '則不能復至乾六，與三元九宮周而復始之義不合」</td>'
+      + '<td class="tiny"><span class="tag j">可算</span>以三元九宮之週期性反駁，屬結構之判非門派之爭，'
+      + '逐年可驗</td></tr>'
+      + '<tr><td class="su">三<br><span class="tiny">神在日</span></td>'
+      + '<td class="tiny">三十五日之說</td>'
+      + '<td class="tiny">查其源出《玉匣記》而「加之以傳訛」；考玉匣記出道續藏乃明嘉靖年所添，'
+      + '而許旌陽為晉代人</td>'
+      + '<td class="tiny"><span class="tag j">可算</span>年代先後之考，屬文獻事實</td></tr>'
+      + '<tr><td class="su">四<br><span class="tiny">滿德吉慶</span></td>'
+      + '<td class="tiny">宗鏡以滿德吉慶為偽吉日</td>'
+      + '<td class="tiny"><b>「選擇宗鏡以滿德吉慶為偽吉日，信知言也」</b>——協紀於此明白贊同</td>'
+      + '<td class="tiny"><span class="tag g">贊同</span></td></tr>'
+      + '<tr><td class="su">五<br><span class="tiny">冰消瓦解・滅門大禍</span></td>'
+      + '<td class="tiny">宗鏡所論之輕重</td>'
+      + '<td class="tiny">以年支之平收推之，論其輕重不合</td>'
+      + '<td class="tiny"><span class="tag j">可算</span>起例之推，可逐年驗</td></tr>'
+      + '<tr><td class="su">六<br><span class="tiny">小姑無子・天狗方</span></td>'
+      + '<td class="tiny">宗鏡編載其說而不加辨駁</td>'
+      + '<td class="tiny">責其「不加辨駁，轉編載其說，吁可怪也」</td>'
+      + '<td class="tiny"><span class="tag r">不可算</span>此責其編纂之取捨，非事實之爭</td></tr>'
+      + '</table>'
+      + '<div class="note" style="margin-top:10px">'
+      + '<b>引文之校勘不作為缺口。</b>《選擇宗鏡》與《烏兔擇日》皆早於協紀，無從答辯，'
+      + '故本引擎之文獻即以協紀為據——可行的張力不是辯論，是'
+      + '<b>同出一書之引文與斷語相對照</b>：引文在前、斷語在後，逐條可校。'
+      + '此為使用者所裁定，本引擎從之。</div>';
 
     h += '<h4>三、爭點分兩類：可算者算之，不可算者不代擬</h4>'
       + '<table><tr><th>類</th><th>爭的是什麼</th><th>本引擎之處置</th></tr>'
@@ -4667,12 +4739,13 @@ var HZ = (function (XY) {
       + '<b>本引擎只出天星這一半</b>：太陽到方、七政到山、可見性。'
       + '神煞那一半（年神月神日神、建除十二直、九宮飛佈之屬）留在堪輿引擎，'
       + '兩者<b>不在任何一支程式裡合一</b>。<br><br>'
-      + '<span style="color:var(--zhu)">但須明說一件事</span>：'
-      + '本頁之天星法，其算例與表皆得自<b>協紀卷三十四</b>——'
-      + '那是<b>神煞派官修之書所收錄的天星章節</b>，不是天星派自己的書。'
-      + '故嚴格說來，目前並列的不是「兩家各自的說法」，'
-      + '而是「一部書裡的兩面」。<b>要成其為兩家並列，尚缺天星派自述之底本</b>'
-      + '（《選擇宗鏡》與烏兔擇日），此二書未備之前，本卡之標題即是其實況。</div></div>';
+      + '<b>此界線已定</b>：神煞層之方位性太強——協紀年表之綱目即「開山立向修方」，'
+      + '那是空間軸之事，搬入七政四餘會使兩具引擎俱失焦；'
+      + '且堪輿引擎已將該層做完並經古書自校，重做即是純損耗。<br><br>'
+      + '<b>本頁之天星法，其算例與表皆得自協紀卷三十四</b>——'
+      + '那是神煞派官修之書所收錄的天星章節，不是天星派自己的書。'
+      + '故此卡之標題非修辭：所並列者確是「一部書裡的兩面」，而非兩家各自的說法。'
+      + '此一限制寫在這裡，不因資料齊備與否而改。</div></div>';
 
     $('outDao').innerHTML = h;
   }
@@ -5168,6 +5241,23 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         && HZ.shanOf(90).shan === '卯' && HZ.shanOf(180).shan === '午' && HZ.shanOf(270).shan === '酉'
         && HZ.shanOf(7.4).near === true && HZ.shanOf(0).near === false;
     })());
+    ok('年干支以立春為界，非以元旦（2024 立春 2/4 16 時餘）', (function () {
+      var a = DZ.ganZhiOfDate(2024, 2, 4), b = DZ.ganZhiOfDate(2024, 2, 5);
+      var c = DZ.ganZhiOfDate(1984, 2, 4), d = DZ.ganZhiOfDate(1984, 2, 5);
+      return a.gan + a.zhi === '癸卯' && b.gan + b.zhi === '甲辰' && a.before === true && b.before === false
+        && c.gan + c.zhi === '癸亥' && d.gan + d.zhi === '甲子';
+    })(), '前此逕以西曆年推，故一月一日至立春之間所生者，年干支盡誤一位——而神煞・化曜・三元祿・卦氣四層皆繫於年干');
+    ok('立春逐年實算（太陽視黃經達 315°），非查表', (function () {
+      var t = DZ.lichunJD(2024), f = XY.fromJD(t + 8 / 24);
+      var t2 = DZ.lichunJD(1984), f2 = XY.fromJD(t2 + 8 / 24);
+      return f.m === 2 && f.d === 4 && Math.abs(f.h - 16.45) < 0.5
+        && f2.m === 2 && f2.d === 4 && Math.abs(f2.h - 23.3) < 0.5;
+    })(), '2024 得 2/4 16.3 時、1984 得 2/4 23.4 時');
+    ok('三針之自檢以物理錨點為準，不以正負號為準', (function () {
+      var a = HZ.threeNeedle(352.5).filter(function (x) { return x.k === '中針'; })[0];
+      var b = HZ.threeNeedle(7.5).filter(function (x) { return x.k === '縫針'; })[0];
+      return a.shan === '子' && b.shan === '子' && Math.abs(a.off) < 1e-9 && Math.abs(b.off) < 1e-9;
+    })(), '讀數偏移與盤面刻度偏移之正負相反而所指之實同；錨點＝中針子位在真方位 352.5°、縫針子位在 7.5°');
     ok('三針之用途兩說並列，各有出處，本引擎不裁決', (function () {
       return HZ.ZHEN3.every(function (z) { return z.use && z.src && z.use2 && z.src2; })
         && HZ.ZHEN3[1].use === '格龍' && HZ.ZHEN3[1].use2 === '消砂'
@@ -5619,15 +5709,16 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     /* 神煞原註之「主某某」二三字，供白譯並列 */
     var shaZhu = {};
     (function () {
-      var gy2 = XY.fromJD(T.jdUT + 8 / 24).y;
-      DZ.byGan(DZ.ganOfYear(gy2)).forEach(function (x) { shaZhu[x.name] = x.zhu; });
-      DZ.byZhi(DZ.zhiOfYear(gy2)).forEach(function (x) { shaZhu[x.name] = x.zhu; });
+      var cv2 = XY.fromJD(T.jdUT + 8 / 24), gz2 = DZ.ganZhiOfDate(cv2.y, cv2.m, cv2.d, cv2.h);
+      DZ.byGan(gz2.gan).forEach(function (x) { shaZhu[x.name] = x.zhu; });
+      DZ.byZhi(gz2.zhi).forEach(function (x) { shaZhu[x.name] = x.zhu; });
       DZ.TONGWEI.forEach(function (x) { shaZhu[x[0]] = x[1]; });
     })();
     /* ── 傳承三層之落宮（卦氣・鬥杓・唐符／天干化曜／三元祿群）
        宮級者上盤為籤，曜級者入點開之詳解；推法與原文全在「星盤」分頁，此處只引結果，不另立座標 */
     var civP = XY.fromJD(T.jdUT + 8 / 24);
-    var yGan = DZ.ganOfYear(civP.y), yZhi = DZ.zhiOfYear(civP.y);
+    var GZP = DZ.ganZhiOfDate(civP.y, civP.m, civP.d, civP.h);
+    var yGan = GZP.gan, yZhi = GZP.zhi;
     var guaQ = GQI.guaqi(yGan), douB = GQI.doubiao(sunLam);
     var feiR = (DZ.byGan(yGan).filter(function (x) { return x.name === '飛刃'; })[0] || {}).zhi;
     var guanZ = AM.ZHI[XY.mod(mi0 - ZG.GONG12.indexOf('官祿'), 12)];
@@ -7091,7 +7182,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 223 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 226 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
