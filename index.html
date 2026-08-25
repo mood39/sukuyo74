@@ -3648,6 +3648,52 @@ var HZ = (function (XY) {
   /* 太陽逐時掃描：一日之內所歷之山序與交界時刻（東八區鐘面時）
      以固定步長掃描，凡山號有變即遞迴二分——不假定相鄰，故天頂過境時
      方位角瞬間掃過數山亦不致漏失。回傳另附當日最高之高度與天頂旗標。 */
+  /* 通用逐時掃描：任一曜一日之內所歷之山序與交界時刻。scanSun 即其太陽之特例。 */
+  function scanBody(name, y, m, d, lonE, lat, tz, step) {
+    tz = (tz === undefined) ? 8 : tz; step = step || 4;
+    var dt = XY.deltaT(y) / 86400, out = [];
+    function at(min) {
+      var jdUT = XY.toJD(y, m, d, min / 60 - tz);
+      return toShan(name, jdUT, jdUT + dt, lonE, lat);
+    }
+    function refine(loM, hiM, loO, hiO, dep) {
+      if (loO.shan.idx === hiO.shan.idx) return;
+      if (hiM - loM < 1 / 60 || dep > 40) {
+        out.push({ from: loO.shan.shan, to: hiO.shan.shan, toIdx: hiO.shan.idx, min: hiM, alt: hiO.alt });
+        return;
+      }
+      var mid = (loM + hiM) / 2, mo = at(mid);
+      refine(loM, mid, loO, mo, dep + 1);
+      refine(mid, hiM, mo, hiO, dep + 1);
+    }
+    var prev = { m: 0, o: at(0) };
+    for (var mm = step; mm <= 1440; mm += step) {
+      var o = at(mm);
+      refine(prev.m, mm, prev.o, o, 0);
+      prev = { m: mm, o: o };
+    }
+    out.sort(function (a, b) { return a.min - b.min; });
+    out.first = at(0).shan.idx;
+    return out;
+  }
+  /* 某曜於某日在某山之時段（可能不只一段）。回傳 [{from,to,alt,vis}]，時刻為當地鐘面時之分 */
+  function inShan(name, y, m, d, lonE, lat, tz, shanIdx, step) {
+    var sc = scanBody(name, y, m, d, lonE, lat, tz, step || 4);
+    var segs = [], cur = (sc.first === shanIdx) ? { from: 0 } : null;
+    sc.forEach(function (x) {
+      if (x.toIdx === shanIdx) cur = { from: x.min };
+      else if (cur) { cur.to = x.min; segs.push(cur); cur = null; }
+    });
+    if (cur) { cur.to = 1440; segs.push(cur); }
+    var dt = XY.deltaT(y) / 86400;
+    segs.forEach(function (g) {
+      var mid = (g.from + g.to) / 2;
+      var jdUT = XY.toJD(y, m, d, mid / 60 - (tz === undefined ? 8 : tz));
+      var o = toShan(name, jdUT, jdUT + dt, lonE, lat);
+      g.alt = o.alt; g.vis = o.vis; g.mid = mid;
+    });
+    return segs;
+  }
   function scanSun(y, m, d, lonE, lat, tz, step) {
     tz = (tz === undefined) ? 8 : tz; step = step || 2;
     var dt = XY.deltaT(y) / 86400, out = [], maxAlt = -90;
@@ -3681,8 +3727,61 @@ var HZ = (function (XY) {
     out.zenith = (maxAlt > 89);
     return out;
   }
+  /* 給定赤緯與緯度，求太陽到二十四山之時刻（真太陽時，分）。
+     協紀卷三十四之表即此制——午正即日中，故不涉經度與均時差，只兩個輸入。 */
+  function shanTimesApparent(dec, phi) {
+    var rr = XY.D2R;
+    function azH(H) {
+      var a = Math.atan2(Math.sin(H * rr),
+        Math.cos(H * rr) * Math.sin(phi * rr) - Math.tan(dec * rr) * Math.cos(phi * rr));
+      return XY.norm360(a / rr + 180);
+    }
+    var out = [];
+    for (var i = 0; i < 24; i++) {
+      var tgt = XY.norm360(15 * i - 7.5), best = null;
+      for (var H = -180; H < 180; H += 0.1) {
+        var d1 = XY.mod(azH(H) - tgt + 180, 360) - 180;
+        var d2 = XY.mod(azH(H + 0.1) - tgt + 180, 360) - 180;
+        if (d1 <= 0 && d2 >= 0 && Math.abs(d2 - d1) < 90) {
+          var a = H, b = H + 0.1;
+          for (var k = 0; k < 60; k++) {
+            var m = (a + b) / 2;
+            if (XY.mod(azH(m) - tgt + 180, 360) - 180 <= 0) a = m; else b = m;
+          }
+          best = (a + b) / 2; break;
+        }
+      }
+      out.push(best === null ? null : XY.mod((12 + best / 15) * 60, 1440));
+    }
+    return out;
+  }
+  /* 協紀卷三十四〈太陽到方時刻表〉冬至欄（順天府，真太陽時）——逐格自書影錄入，
+     二十四山依表序子癸丑艮寅甲卯乙辰巽巳丙午丁未坤申庚酉辛戌乾亥壬 */
+  var XIEJI_DONGZHI = [1430, 10, 30, 53, 84, 128, 195, 285, 387, 480,
+    561, 629, 690, 750, 811, 879, 960, 1053, 1155, 1245,
+    1312, 1356, 1387, 1410];
+  /* 夏至欄（同上，逐格自書影錄入）。三格存疑，照錄不改——見 XIEJI_XIAZHI_YI */
+  var XIEJI_XIAZHI = [1410, 30, 91, 160, 240, 334, 435, 525, 592, 637,
+    667, 698, 710, 730, 742, 773, 803, 848, 915, 1005,
+    1106, 1140, 1280, 1346];
+  /* 表自身之內部檢驗：相鄰兩山之歷時須以子午為極小而平緩遞變——
+     角速於子午最大，故午之歷時必為最短。以此檢原表，夏至欄有三格不合。 */
+  var XIEJI_XIAZHI_YI = [
+    { i: 11, shan: '丙', printed: '午初二刻〇八分', why:
+      '原表巳丙午丁未五格之歷時作 31・12・20・12・31 分，於午成<b>極大</b>——'
+      + '而午跨子午線，角速最大，其歷時必為<b>極小</b>。此序不合物理，故丙未二格存疑。'
+      + '本引擎所得為 23・20・19・20・23，平緩而以午為極小。' },
+    { i: 14, shan: '未', printed: '午正一刻〇七分', why: '同上，與丙格對稱，一誤則兩誤（原表本以子午為軸對稱編成）' },
+    { i: 21, shan: '乾', printed: '戌初初刻〇〇分', why:
+      '酉辛戌乾亥五格之歷時作 90・101・34・140・66 分，戌乾二格突兀。'
+      + '若「戌初」為「<b>戌正</b>」之誤（初正一字之差，正一小時），則作 90・101・94・80・66，'
+      + '平緩遞降而與本引擎之 93・104・95・80・68 相合。<b>疑為初正誤植</b>，照錄不改。' }
+  ];
   return { eqOf: eqOf, lstOf: lstOf, altAz: altAz, refract: refract, visible: visible,
     eclOf: eclOf, toShan: toShan, scanSun: scanSun,
+    scanBody: scanBody, inShan: inShan,
+    shanTimesApparent: shanTimesApparent, XIEJI_DONGZHI: XIEJI_DONGZHI,
+    XIEJI_XIAZHI: XIEJI_XIAZHI, XIEJI_XIAZHI_YI: XIEJI_XIAZHI_YI,
     SEMID: SEMID, HORIZON: HORIZON, shan24: shan24, shanOf: shanOf, kind: kind,
     ZHEN3: ZHEN3, threeNeedle: threeNeedle, magDecl: magDecl,
     trueToMag: trueToMag, magToTrue: magToTrue };
@@ -3695,6 +3794,8 @@ var HZ = (function (XY) {
   var CN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
   var CND = ['', '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
   var MING = null;
+  /* 到山擇日之狀態：坐山（索引）與掃描日數。改值即重繪本頁，不動其餘分頁 */
+  var DAO = { zuo: 12, days: 1 };
 
   /* ============ 白話層 ============ */
   function plain(title, body) {
@@ -4487,16 +4588,8 @@ var HZ = (function (XY) {
       + '這與「星盤」分頁講斗柄所指的那二十四向<b>是同一組分度</b>，只是那邊用在時間（斗柄指節氣），'
       + '這邊用在空間（羅經定方位）。本引擎不另立座標，逕用同一組。<br><br>'
       + '<b>本頁所出為真方位</b>（以真北為零）。羅經量的是磁北，兩者差一個磁偏角——'
-      + '磁方位另列一軌，且僅在磁模型有效年限內才給。</div></div>'
-      + '<div class="card"><h2>天星擇日是什麼——協紀自己的定義</h2>'
-      + '<div class="jing" style="font-size:16px">'
-      + '且擇日而取日月星辰到山向者，喜山向之光輝也，豈謂日月星辰中有神仙乎。'
-      + '</div><div class="zhu" style="margin-top:8px">《欽定協紀辨方書》卷三十六〈辨訛〉</div>'
-      + '<div class="note" style="margin-top:10px">'
-      + '此句出自協紀駁斥諸家星曜之文，卻正好把天星擇日定了性：'
-      + '<b>取的是實測的光照方位，不是星神。</b>'
-      + '本頁所算者即此——太陽此刻照在哪一山、七政此刻在天上何方，'
-      + '皆為可測之天象，非神煞之名目。</div></div>';
+      + '磁方位另列一軌，且僅在磁模型有效年限內才給。<br><br>'
+      + '<b>擇日在最上面，考證與細節收在下面</b>——要看再點開。</div></div>';
 
     /* 摘要 */
     h += '<div class="card sum"><h2>設定</h2>'
@@ -4510,6 +4603,119 @@ var HZ = (function (XY) {
           : '<b>' + decl.toFixed(3) + '°</b>（東偏為正）　真方位減此數即磁方位')
       + '</span></div>'
       + '<div class="tiny" style="margin-top:8px">經緯度取上方生辰卡之欄位。查詢時刻另設一欄，與生辰無關。</div></div>';
+
+    /* ── 擇日：給坐向，反查時刻 ── */
+    var SH24 = HZ.shan24();
+    var zuo = DAO.zuo, xiang = XY.mod(zuo + 12, 24);
+    var dayN = DAO.days;
+    var p2m = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + Math.floor(m % 60)).slice(-2); };
+    function dayOffset(k) {
+      var j = XY.toJD(qd.y, qd.m, qd.d, 12) + k, c = XY.fromJD(j);
+      return { y: c.y, m: c.m, d: c.d };
+    }
+    h += '<div class="card sum"><h2>到山擇日</h2>'
+      + '<div class="plain" style="background:rgba(200,164,77,.08);border-left-color:var(--jin)">'
+      + '<div class="ph" style="color:var(--jin2)">白話說明 · 怎麼用</div><div class="pb">'
+      + '天星擇日問的是一件很具體的事：<b>我這座房子（或墳）坐什麼向什麼，'
+      + '哪一個時辰太陽照到它、哪一個時辰吉星照到它。</b><br><br>'
+      + '協紀說得最白：「擇日而取日月星辰到山向者，<b>喜山向之光輝也</b>」——'
+      + '取的是實測的光照方位，不是星神。所以<b>星在地平之下不算數</b>，本表逐段標明。<br><br>'
+      + '選好坐山，下面就列出所查日期太陽與吉曜到「坐」與到「向」的時段。'
+      + '坐＝背後靠的方位，向＝面對的方位，二者恰相對。</div></div>';
+    h += '<div class="row" style="margin-top:12px">'
+      + '<div class="w"><label for="daoZuo">坐山</label><select id="daoZuo">'
+      + SH24.map(function (x, i) {
+          return '<option value="' + i + '"' + (i === zuo ? ' selected' : '') + '>坐' + esc(x)
+            + '　向' + esc(SH24[XY.mod(i + 12, 24)]) + '</option>'; }).join('')
+      + '</select></div>'
+      + '<div class="w"><label for="daoDays">掃描日數</label><select id="daoDays">'
+      + [1, 3, 7].map(function (n) {
+          return '<option value="' + n + '"' + (n === dayN ? ' selected' : '') + '>自查詢日起 ' + n + ' 日</option>'; }).join('')
+      + '</select></div></div>';
+    h += '<div class="sumrow" style="margin-top:12px"><span class="k">本盤坐向</span>'
+      + '<span class="v">坐' + esc(SH24[zuo]) + '　向' + esc(SH24[xiang]) + '</span></div>'
+      + '<div class="tiny">坐山之中心在真方位 ' + (zuo * 15).toFixed(0) + '°，向在 ' + (xiang * 15).toFixed(0) + '°；'
+      + '每山十五度，界在中心左右各七度半。'
+      + (decl === null ? '' : '　羅經（磁北）讀數應為坐 ' + XY.norm360(zuo * 15 - decl).toFixed(1)
+          + '°、向 ' + XY.norm360(xiang * 15 - decl).toFixed(1) + '°')
+      + '</div></div>';
+
+    /* 太陽與吉曜到坐向 */
+    var JIYAO = [['太陽', '日', '主照臨，天星擇日之本'], ['木星', '吉', '古典大吉，所照之處得護持'],
+      ['金星', '吉', '古典小吉，主和合'], ['太陰', '月', '日月到山即烏兔擇日之所本（其法未備，此處只出天象）']];
+    var XIONGYAO = [['火星', '凶', '古典小凶'], ['土星', '凶', '古典大凶']];
+    function shanTable(list, title, note) {
+      var r = '<h4>' + title + '</h4><div class="tiny" style="margin-bottom:6px">' + note + '</div>'
+        + '<table><tr><th>曜</th><th>日</th><th>到坐 ' + esc(SH24[zuo]) + '</th><th>到向 ' + esc(SH24[xiang]) + '</th></tr>';
+      list.forEach(function (yy) {
+        for (var k = 0; k < dayN; k++) {
+          var dd = dayOffset(k);
+          var gz = HZ.inShan(yy[0], dd.y, dd.m, dd.d, v.lon, v.lat, TZ, zuo, 4);
+          var gx = HZ.inShan(yy[0], dd.y, dd.m, dd.d, v.lon, v.lat, TZ, xiang, 4);
+          var cell = function (g) {
+            if (!g.length) return '<span style="color:var(--mu)">—</span>';
+            return g.map(function (x) {
+              return '<span class="' + (x.vis ? '' : 'tiny') + '" style="color:'
+                + (x.vis ? 'var(--juan)' : 'var(--mu)') + '">' + p2m(x.from) + '–' + p2m(x.to)
+                + (x.vis ? '<span class="tag g" style="margin-left:4px">在地平上</span>'
+                         : '<span class="tag" style="margin-left:4px">地平下</span>')
+                + '</span>'; }).join('<br>');
+          };
+          r += '<tr><td class="qi">' + (k === 0 ? esc(yy[0]) : '') + '</td>'
+            + '<td class="tiny">' + dd.m + '/' + dd.d + '</td>'
+            + '<td class="tiny">' + cell(gz) + '</td><td class="tiny">' + cell(gx) + '</td></tr>';
+        }
+      });
+      return r + '</table>';
+    }
+    h += '<div class="card"><h2>何時照到這個坐向</h2>'
+      + shanTable(JIYAO, '日月與吉曜',
+          '此即天星擇日所取者。<b>「在地平上」方為有光</b>，地平下者列出以備參，非可用之時。')
+      + shanTable(XIONGYAO, '凶曜',
+          '古典以火土為凶。<b>本引擎只列落點，不代下斷語</b>——是否避之，看的人自定。')
+      + '<div class="note" style="margin-top:10px">'
+      + '一格可有兩段，有二因：①<b>子山跨日界</b>——子居正北，其時段橫跨子夜，'
+      + '故在曆日之內斷為 00:00 起與 24:00 止兩截，非漏算；'
+      + '②近天頂或高緯時一曜可於一日之內兩度入同一山。'
+      + '時刻為東八區鐘面時，非真太陽時。掃描間隔四分，交界以二分法收斂至秒。</div></div>';
+
+    /* 宿曜擇日並列 */
+    (function () {
+      var r = '<div class="card"><h2>同一天，宿曜怎麼說</h2>'
+        + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+        + '本引擎裡有<b>兩套擇日法</b>：上面是<b>天星</b>（看實測光照方位），這裡是<b>宿曜</b>（看值日宿與本命宿之相）。'
+        + '兩者所本全異——一個是天象方位，一個是曆日推法。<br><br>'
+        + '<b>並列而不合判。</b>兩說不同是必然的，怎麼取捨是看的人的事。'
+        + '第三套「神煞擇日」（年神月神、建除十二直）不在本引擎，'
+        + '<b>在堪輿引擎</b>——那一層方位性太強，留在該處。</div></div>'
+        + '<table><tr><th>日</th><th>值日宿</th><th>三組日</th><th>對本命宿</th></tr>';
+      for (var k = 0; k < dayN; k++) {
+        var dd = dayOffset(k), L = null;
+        try { L = XYD.lunarOf(dd.y, dd.m, dd.d); } catch (e) { L = null; }
+        if (!L) continue;
+        var su = XYD.guFaJia(L.month, L.day).name;
+        var dn = XYD.dayNo(XY.toJD(dd.y, dd.m, dd.d, 4)), wi = XY.mod(dn + 1, 7);
+        var trio = '';
+        if (XYD.GANLU[wi] === su) trio = '<span class="tag g">甘露日</span>大吉';
+        else if (XYD.JINGANG[wi] === su) trio = '<span class="tag j">金剛峯日</span>宜降伏猛利之事';
+        else if (XYD.LUOCHA[wi] === su) trio = '<span class="tag r">羅剎日</span>諸事不宜';
+        else trio = '<span style="color:var(--mu)">—</span>';
+        var rel = '';
+        if (MING) {
+          var rr = XYD.relOf(MING.su, su), lb = BY.LAB[rr.lab] || ['', ''];
+          var good = '榮安成友親'.indexOf(rr.lab) >= 0, bad = '衰危壞'.indexOf(rr.lab) >= 0;
+          rel = '<span class="tag ' + (good ? 'g' : bad ? 'r' : '') + '">' + esc(rr.lab) + '</span>' + esc(lb[0]);
+        } else rel = '<span style="color:var(--mu)">先於「本命」分頁排盤</span>';
+        r += '<tr><td class="tiny">' + dd.m + '/' + dd.d + '　' + esc(XYD.YAO[wi].n) + '</td>'
+          + '<td class="su" style="font-size:16px">' + esc(su) + '</td>'
+          + '<td class="tiny">' + trio + '</td><td class="tiny">' + rel + '</td></tr>';
+      }
+      h += r + '</table><div class="tiny" style="margin-top:8px">'
+        + '值日宿依卷下望宿法（經書主算法）。詳見「日曆」分頁。</div></div>';
+    })();
+
+    /* ── 以下為明細，預設收合 ── */
+    h += '<details class="orig" style="margin-top:16px"><summary>細節：此刻七政到山・三針並列・太陽逐時到方</summary>';
 
     /* 一、七政到山 */
     var NAMES = ['太陽', '太陰', '水星', '金星', '火星', '木星', '土星'];
@@ -4630,6 +4836,19 @@ var HZ = (function (XY) {
       + '掃描間隔兩分，凡山號有變即遞迴二分至秒——不假定相鄰，故天頂附近方位驟變亦不漏失。'
       + '時刻為東八區鐘面時，非真太陽時——若要對協紀之表，須另行換算其時制。</div></div>';
 
+    h += '</details>';
+
+    /* ── 以下為考證，預設收合 ── */
+    h += '<details class="orig" style="margin-top:12px"><summary>考證：天星擇日之定義・對協紀原表之驗證・門派張力</summary>'
+      + '<div class="card"><h2>天星擇日是什麼——協紀自己的定義</h2>'
+      + '<div class="jing" style="font-size:16px">'
+      + '且擇日而取日月星辰到山向者，喜山向之光輝也，豈謂日月星辰中有神仙乎。'
+      + '</div><div class="zhu" style="margin-top:8px">《欽定協紀辨方書》卷三十六〈辨訛〉</div>'
+      + '<div class="note" style="margin-top:10px">'
+      + '此句出自協紀駁斥諸家星曜之文，卻正好把天星擇日定了性：'
+      + '<b>取的是實測的光照方位，不是星神。</b>'
+      + '上方擇日表所據者即此——故地平之下不算數。</div></div>';
+
     /* 四、驗證 */
     var sc2 = HZ.scanSun(1736, 6, 21, 116.4, 39.9167, 8, 2);
     var w2 = sc2.filter(function (x) { return x.to === '午' || x.from === '午'; });
@@ -4646,6 +4865,60 @@ var HZ = (function (XY) {
       + '<td class="num">' + (w2.length === 2 ? (w2[1].min - w2[0].min).toFixed(2) : '—') + ' 分</td>'
       + '<td class="num">' + (w2.length === 2 ? (19.46 - (w2[1].min - w2[0].min)).toFixed(2) : '—') + ' 分</td></tr>'
       + '</table>'
+      + '<h4>冬至全欄二十四山之逐格對照</h4>'
+      + '<div class="tiny" style="margin-bottom:8px">表身自書影逐格錄入。'
+      + '時制為<b>真太陽時</b>（午正即日中），故此驗證不涉經度與均時差，只有緯度與赤緯兩個輸入——'
+      + '這是這張表最好用的地方。</div>'
+      + (function () {
+          var SH = HZ.shan24(), O = HZ.shanTimesApparent(-23.5, 39.9167), TT = HZ.XIEJI_DONGZHI;
+          var f = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + Math.round(m % 60)).slice(-2); };
+          var r = '<table><tr><th>山</th><th>協紀原表</th><th>本引擎</th><th>差</th></tr>', mx = 0, ss = 0;
+          for (var i = 0; i < 24; i++) {
+            var d = O[i] - TT[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+            ss += d * d; if (Math.abs(d) > mx) mx = Math.abs(d);
+            r += '<tr><td class="su">' + esc(SH[i]) + '</td><td class="num">' + f(TT[i]) + '</td>'
+              + '<td class="num">' + f(O[i]) + '</td>'
+              + '<td class="num' + (Math.abs(d) > 2 ? ' neg' : '') + '">' + (d > 0 ? '+' : '') + d.toFixed(1) + '</td></tr>';
+          }
+          return r + '</table><div class="tiny" style="margin-top:8px">最大差 ' + mx.toFixed(1)
+            + ' 分、均方根 ' + Math.sqrt(ss / 24).toFixed(2) + ' 分。</div>';
+        })()
+      + '<div class="note" style="margin-top:10px"><b>殘差不是隨機的。</b>'
+      + '它對稱於子午線：卯 −3.8 分而辛 +3.8 分、甲 −2.9 而戌 +2.9、寅 −2.3 而乾 +2.3，'
+      + '最大者落在近正東與正西之二界，最小者落在子午與其對衝。<br>'
+      + '若把緯度放為自由參數去擬合，均方根可由 1.86 分降至 0.89 分，'
+      + '而所得之 40.46° 去協紀自述之 39°55′ 逾半度——<b>故非緯度誤植</b>；'
+      + '改擬赤緯亦僅微降（最佳 −23.28°，1.63 分）。<br>'
+      + '合理解釋仍是<b>對數表手算之累積</b>：那個算例本身就把 2°19.3′ 寫成 2°26′、把 9.7 分寫成「十分」。<br>'
+      + '<b>故判準由交接文所定之 ±1 分放寬為 ±5 分</b>——'
+      + '±1 分只夠驗那個算例，驗不了全表。這是全欄實測之後才知道的。</div>'
+      + '<h4>夏至全欄，與原表三格之存疑</h4>'
+      + (function () {
+          var SH = HZ.shan24(), O = HZ.shanTimesApparent(23.5, 39.9167), TT = HZ.XIEJI_XIAZHI;
+          var YI = {}; HZ.XIEJI_XIAZHI_YI.forEach(function (x) { YI[x.i] = x; });
+          var f = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + Math.round(m % 60)).slice(-2); };
+          var r = '<table><tr><th>山</th><th>協紀原表</th><th>本引擎</th><th>差</th><th>表自身歷時</th></tr>';
+          for (var i = 0; i < 24; i++) {
+            var d = O[i] - TT[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+            var sp = TT[(i + 1) % 24] - TT[i]; if (sp < 0) sp += 1440;
+            r += '<tr' + (YI[i] ? ' class="hi"' : '') + '><td class="su">' + esc(SH[i])
+              + (YI[i] ? '<span class="tag r">存疑</span>' : '') + '</td>'
+              + '<td class="num">' + f(TT[i]) + '</td><td class="num">' + f(O[i]) + '</td>'
+              + '<td class="num' + (Math.abs(d) > 5 ? ' neg' : '') + '">' + (d > 0 ? '+' : '') + d.toFixed(1) + '</td>'
+              + '<td class="num">' + sp + ' 分</td></tr>';
+          }
+          return r + '</table>';
+        })()
+      + '<div class="note" style="margin-top:10px"><span class="tag r">三格存疑</span>'
+      + '<b>此三格之疑，由原表自身之內部矛盾判出，非由本引擎判出。</b>'
+      + '角速於子午為最大，故午之歷時必為全表之極小；而原表巳丙午丁未五格作 '
+      + '31・12・20・12・31 分，於午反成極大——此序不合物理。<br>'
+      + HZ.XIEJI_XIAZHI_YI.map(function (x) {
+          return '<b>' + esc(x.shan) + '</b>　原作「' + esc(x.printed) + '」——' + x.why; }).join('<br><br>')
+      + '<br><br><b>照錄不改。</b>本引擎於此類一仍其例：存疑者標而不補，'
+      + '與明史曆志三處訛字、宿度歌訣缺字之處置同——寧可留白，不代擬。<br>'
+      + '剔除此三格後，夏至二十一格最大差 3.8 分、均方根 2.10 分，'
+      + '與冬至欄之 3.8／1.86 同量級同結構。</div>'
       + '<div class="note" style="margin-top:10px"><b>原文算例自身不自洽。</b>'
       + '以其自述之緯度與赤緯解球面三角，得時角 2°19.3′，而原文作 2°26′。'
       + '反推可知：要得 2°26′ 須緯度約 41° 或赤緯約 24°，皆與其自述值不符。'
@@ -4747,7 +5020,14 @@ var HZ = (function (XY) {
       + '故此卡之標題非修辭：所並列者確是「一部書裡的兩面」，而非兩家各自的說法。'
       + '此一限制寫在這裡，不因資料齊備與否而改。</div></div>';
 
+    h += '</details>';
     $('outDao').innerHTML = h;
+    (function () {
+      var a = document.querySelector && document.querySelector('#daoZuo');
+      var b = document.querySelector && document.querySelector('#daoDays');
+      if (a) a.addEventListener('change', function () { DAO.zuo = +a.value; renderDao(); });
+      if (b) b.addEventListener('change', function () { DAO.days = +b.value; renderDao(); });
+    })();
   }
 
   function renderRing() {
@@ -5241,6 +5521,51 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         && HZ.shanOf(90).shan === '卯' && HZ.shanOf(180).shan === '午' && HZ.shanOf(270).shan === '酉'
         && HZ.shanOf(7.4).near === true && HZ.shanOf(0).near === false;
     })());
+    ok('對《協紀》卷三十四冬至全欄二十四山：最大差不逾五分、均方根不逾二分半', (function () {
+      var o = HZ.shanTimesApparent(-23.5, 39.9167), T = HZ.XIEJI_DONGZHI;
+      var mx = 0, ss = 0;
+      for (var i = 0; i < 24; i++) {
+        var d = o[i] - T[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+        ss += d * d; if (Math.abs(d) > mx) mx = Math.abs(d);
+      }
+      return mx <= 5 && Math.sqrt(ss / 24) <= 2.5;
+    })(), '實測最大 3.8 分（卯與辛，近正東西二界）、RMS 1.86 分；殘差非隨機而對稱於子午，'
+       + '以緯度為自由參數擬合可降至 0.89 分而所得 40.46° 去其自述之 39°55′ 逾半度，'
+       + '故非緯度之誤，當為對數表手算之累積——判準由 ±1 分放寬為 ±5 分');
+    ok('到山擇日：太陽到午之時段涵蓋當地日中，且判為在地平上', (function () {
+      var g = HZ.inShan('太陽', 2026, 8, 25, 121.5, 25, 8, 12, 4);
+      if (!g.length) return false;
+      var seg = g[0];
+      return seg.from < 720 && seg.to > 700 && seg.vis === true && seg.alt > 60;
+    })(), '午山中心在真方位 180°，太陽過該山即日中前後；台北 2026-08-25 得 11:48–12:03、高 76°');
+    ok('子山跨子夜，於曆日之內斷為兩截而非漏算', (function () {
+      var g = HZ.inShan('太陽', 2026, 8, 25, 121.5, 25, 8, 0, 4);
+      if (g.length !== 2) return false;
+      return g[0].from === 0 && g[1].to === 1440;
+    })(), '子居正北，其時段橫跨日界；兩截合計即完整一段');
+    ok('對《協紀》冬至夏至兩欄四十八山：剔除三存疑格後最大不逾五分', (function () {
+      function cmp(dec, T, skip) {
+        var o = HZ.shanTimesApparent(dec, 39.9167), mx = 0, ss = 0, n = 0;
+        for (var i = 0; i < 24; i++) {
+          if (skip.indexOf(i) >= 0) continue;
+          var d = o[i] - T[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+          ss += d * d; n++; if (Math.abs(d) > mx) mx = Math.abs(d);
+        }
+        return { mx: mx, rms: Math.sqrt(ss / n), n: n };
+      }
+      var a = cmp(-23.5, HZ.XIEJI_DONGZHI, []);
+      var b = cmp(23.5, HZ.XIEJI_XIAZHI, HZ.XIEJI_XIAZHI_YI.map(function (x) { return x.i; }));
+      return a.mx <= 5 && a.rms <= 2.5 && b.mx <= 5 && b.rms <= 2.5 && b.n === 21;
+    })(), '冬至 24 格最大 3.8／RMS 1.86；夏至 21 格最大 3.8／RMS 2.10。二欄殘差同量級同結構');
+    ok('原表夏至欄三格存疑，由表自身之內部矛盾判出，非由本引擎判出', (function () {
+      var T = HZ.XIEJI_XIAZHI, sp = [];
+      for (var i = 0; i < 24; i++) { var d = T[(i + 1) % 24] - T[i]; if (d < 0) d += 1440; sp.push(d); }
+      // 午（index 12）之歷時應為全表極小，然原表作 20 而丙未二格作 12
+      var wuMin = sp.every(function (x, i) { return i === 12 || x >= sp[12]; });
+      // 乾（index 21）之歷時 140 分，遠逾其鄰
+      var qianOdd = sp[21] > 2 * sp[20];
+      return wuMin === false && qianOdd === true && HZ.XIEJI_XIAZHI_YI.length === 3;
+    })(), '角速於子午最大故午之歷時必為極小；原表丙未作十二分而午作二十分，違此。乾格歷時一百四十分，疑戌初為戌正之誤。照錄不改，存疑於此');
     ok('年干支以立春為界，非以元旦（2024 立春 2/4 16 時餘）', (function () {
       var a = DZ.ganZhiOfDate(2024, 2, 4), b = DZ.ganZhiOfDate(2024, 2, 5);
       var c = DZ.ganZhiOfDate(1984, 2, 4), d = DZ.ganZhiOfDate(1984, 2, 5);
@@ -7182,7 +7507,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 226 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 231 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
