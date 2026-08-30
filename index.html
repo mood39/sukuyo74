@@ -2561,6 +2561,32 @@ var HL = (function (XY) {
     var s = SIGN[XY.mod(i + XY.mod(age, 12), 12)];
     return { sign: s, house: XY.mod(age, 12) + 1, lord: DOM[s] };
   }
+  /* ── Almuten（阿拉伯 mubtazz，「勝者 victor」）：某度上七曜各以其必然尊貴計分，
+     最高者為該度之 almuten。計分即五等本制：廟5・旺4・三分3・界2・面1。
+     Dykes《Traditional Astrology for Today》詞彙表：「Victor（Ar. mubtazz）．
+     A planet identified as being the most authoritative either for a particular topic
+     or for a chart as a whole」——該書為入門書，只出定義而指向他作，故本引擎
+     只做「某度之 almuten」（定義明確），全盤 almuten（Almuten Figuris）不做，見說明。 */
+  function almuten(lon, isDay) {
+    var L = XY.norm360(lon), sg = SIGN[Math.floor(L / 30)], out = [];
+    P7.forEach(function (n) {
+      var v = 0, w = [];
+      if (DOM[sg] === n) { v += 5; w.push('廟5'); }
+      for (var ei = 0; ei < EXALT.length; ei++)
+        if (EXALT[ei][0] === n && EXALT[ei][1] === sg) { v += 4; w.push('旺4'); }
+      var tr = TRIP[ELEM[sg]];
+      if (tr && (isDay ? tr[0] : tr[1]) === n) { v += 3; w.push('三分3'); }
+      else if (tr && tr[2] === n) { v += 3; w.push('三分3'); }
+      var tm = TERM[sg], tr2 = null, dg2 = L - Math.floor(L / 30) * 30;
+      for (var ti = 0; ti < tm.length; ti++) if (dg2 < tm[ti][1]) { tr2 = tm[ti][0]; break; }
+      if (tr2 === n) { v += 2; w.push('界2'); }
+      if (face(L) === n) { v += 1; w.push('面1'); }
+      if (v) out.push({ yao: n, v: v, how: w.join('・') });
+    });
+    out.sort(function (a, b) { return b.v - a.v; });
+    return { sign: sg, list: out, top: out.length ? out[0] : null,
+      tie: (out.length > 1 && out[0].v === out[1].v) };
+  }
   /* ── 四分宮制 Porphyry：以上升與中天為四角，各象限三等分
      援引：Porphyry《Introduction to the Tetrabiblos》所傳之最簡四分法，中世紀以下沿用。
      本引擎希臘層之判斷主體仍用整宮制（希臘化本法）；四分宮只供 Lilly 偶然尊貴之「所落之宮」給分，
@@ -2731,6 +2757,7 @@ var HL = (function (XY) {
     profection: profection, signOf: signOf,
     TOPOS: TOPOS, THEOI: THEOI, hairesis: hairesis, wholeAspect: wholeAspect,
     G_CAZIMI: G_CAZIMI, G_COMBUST: G_COMBUST, G_BEAMS: G_BEAMS, underSun: underSun,
+    almuten: almuten,
     porphyry: porphyry, houseQuad: houseQuad, STARS: STARS, starLon: starLon,
     ACC_HOUSE: ACC_HOUSE, accidental: accidental,
     FIRD_D: FIRD_D, FIRD_N: FIRD_N, SPEED: SPEED, firdaria: firdaria, translation: translation };
@@ -3070,6 +3097,171 @@ var VD = (function (XY) {
     return { bav: bav, sav: sav };
   }
 
+  /* ── Ṣaḍbala 六分力 —— 據《Bṛhat Parāśara Horā Śāstra》第二十七章〈Evaluation of Strengths〉
+     單位為 Virūpa，六十 Virūpa 為一 Rūpa。羅計不計（原文：The nodes are not considered）。
+     六類：Sthāna（位置）・Dig（方位）・Kāla（時間）・Cheṣṭā（動）・Naisargika（自然）・Dṛk（視）。 */
+  var SB_MOOL = { 太陽: 45, 太陰: 45, 火星: 45, 水星: 45, 木星: 45, 金星: 45, 土星: 45 };
+  /* 七分力之關係計分：根本三角45・本宮30・極友20・友15・中10・敵4・極敵2 */
+  var SB_REL = { 根本三角: 45, 本宮: 30, 極友: 20, 友: 15, 中: 10, 敵: 4, 極敵: 2 };
+  /* 深弱點＝深旺點之對宮同度 */
+  function deepDebil(yao) {
+    var u = UCCHA[yao]; if (!u) return null;
+    return XY.mod(RASI.indexOf(u[0]) * 30 + u[1] + 180, 360);
+  }
+  /* 平黃經（Meeus 三十一章之標準式，度） */
+  var SB_MEANL = {
+    水星: [252.250906, 149474.0722491], 金星: [181.979801, 58519.2130302],
+    地球: [100.466457, 35999.3728565], 火星: [355.433000, 19141.6964471],
+    木星: [34.351519, 3036.3027748], 土星: [50.077444, 1223.5110686]
+  };
+  function meanLon(name, T) {
+    var e = SB_MEANL[name]; return e ? XY.mod(e[0] + e[1] * T, 360) : null;
+  }
+  /* 七分盤：Rāśi・Horā・Drekkāṇa・Saptāṁśa・Navāṁśa・Dvādaśāṁśa・Triṁśāṁśa */
+  function vargaSign(sidLon, kind) {
+    var L = XY.mod(sidLon, 360), si = Math.floor(L / 30), deg = L - si * 30, odd = (si % 2 === 0);
+    if (kind === 'D1') return RASI[si];
+    if (kind === 'D2') {                       // Horā：奇宮前半獅子後半巨蟹，偶宮反之
+      var first = deg < 15;
+      return (odd ? (first ? '獅子' : '巨蟹') : (first ? '巨蟹' : '獅子'));
+    }
+    if (kind === 'D3') {                       // Drekkāṇa：本宮・第五・第九
+      var n3 = Math.floor(deg / 10);
+      return RASI[XY.mod(si + n3 * 4, 12)];
+    }
+    if (kind === 'D7') return varga(L, 7).sign;
+    if (kind === 'D9') return varga(L, 9).sign;
+    if (kind === 'D12') {                      // Dvādaśāṁśa：自本宮起每 2.5 度
+      return RASI[XY.mod(si + Math.floor(deg / 2.5), 12)];
+    }
+    if (kind === 'D30') {                      // Triṁśāṁśa：奇宮火金水木土 5/5/8/7/5，偶宮反序
+      var b = odd ? [[5, '火星'], [10, '土星'], [18, '木星'], [25, '水星'], [30, '金星']]
+                  : [[5, '金星'], [12, '水星'], [20, '木星'], [25, '土星'], [30, '火星']];
+      for (var i = 0; i < 5; i++) if (deg < b[i][0]) return b[i][1];   // 回主星非宮名
+      return b[4][1];
+    }
+    return RASI[si];
+  }
+  var SB_VARGA = ['D1', 'D2', 'D3', 'D7', 'D9', 'D12', 'D30'];
+  function shadbala(C) {
+    /* C: { sid:{曜:恆星黃經}, asc, houses:{曜:宮}, sIdx:{曜:座序}, dec:{曜:赤緯},
+           isDay, hoursFromMidnight, dayLordIdx, horaLordIdx, jdUT, jdTT, ayan } */
+    var out = {}, T = (C.jdTT - 2451545) / 36525;
+    var sunMean = XY.mod((meanLon('地球', T) + 180) - C.ayan, 360);
+    /* Pakṣa：日月夾角 */
+    var el = Math.abs(XY.mod(C.sid['太陰'] - C.sid['太陽'] + 180, 360) - 180);
+    var pakshaBenefic = el / 3;
+    var waxing = XY.mod(C.sid['太陰'] - C.sid['太陽'], 360) < 180;
+    function isBenefic(n) {
+      if (n === '木星' || n === '金星' || n === '水星') return true;
+      if (n === '太陰') return waxing;
+      return false;
+    }
+    /* Tribhāga：晝夜各三分 */
+    var TRI_DAY = ['水星', '太陽', '土星'], TRI_NIGHT = ['太陰', '金星', '火星'];
+    var third = Math.min(2, Math.floor(C.dayFrac * 3));
+    P7V.forEach(function (n) {
+      var L = C.sid[n], si = C.sIdx[n], deg = XY.mod(L, 30), hs = C.houses[n], r = {};
+      /* 一、Sthāna Bala */
+      var dd = Math.abs(XY.mod(L - deepDebil(n) + 180, 360) - 180);
+      r.uccha = dd / 3;
+      var sv = 0, svd = [];
+      SB_VARGA.forEach(function (k) {
+        var vs = vargaSign(L, k);
+        var lord = (k === 'D30') ? vs : DOMV[vs];
+        var rel;
+        if (lord === n) {
+          var mt = MOOL[n];
+          rel = (k === 'D1' && mt && mt[0] === vs && deg >= mt[1] && deg < mt[2]) ? '根本三角' : '本宮';
+        } else {
+          var nat = maitri(n, lord) || '中';
+          var lsi = C.sIdx[lord];
+          var tat = (lsi === undefined) ? '中' : tatkalika(si, lsi);
+          rel = panchadha(nat, tat);
+        }
+        sv += SB_REL[rel]; svd.push({ k: k, sign: vs, lord: lord, rel: rel, v: SB_REL[rel] });
+      });
+      r.saptavarga = sv; r.saptavargaDetail = svd;
+      var oddR = (si % 2 === 0), nsi = RASI.indexOf(varga(L, 9).sign), oddN = (nsi % 2 === 0);
+      var evenWants = (n === '金星' || n === '太陰');
+      r.ojayugma = (evenWants ? (!oddR ? 15 : 0) : (oddR ? 15 : 0))
+        + (evenWants ? (!oddN ? 15 : 0) : (oddN ? 15 : 0));
+      r.kendradi = ([1, 4, 7, 10].indexOf(hs) >= 0) ? 60 : ([2, 5, 8, 11].indexOf(hs) >= 0) ? 30 : 15;
+      var dre = Math.floor(deg / 10);
+      var male = ['太陽', '火星', '木星'], herm = ['水星', '土星'];
+      var want = (male.indexOf(n) >= 0) ? 0 : (herm.indexOf(n) >= 0) ? 1 : 2;
+      r.drekkana = (dre === want) ? 15 : 0;
+      r.sthana = r.uccha + r.saptavarga + r.ojayugma + r.kendradi + r.drekkana;
+      /* 二、Dig Bala：日火自四宮起、木水自七宮、金月自十宮、土自命宮 */
+      var base = { 太陽: 3, 火星: 3, 木星: 6, 水星: 6, 金星: 9, 太陰: 9, 土星: 0 }[n];
+      var pt = XY.mod(C.asc + base * 30, 360);
+      var dg = Math.abs(XY.mod(L - pt + 180, 360) - 180);
+      r.dig = dg / 3;
+      /* 三、Kāla Bala */
+      var natBal = 60 - 5 * C.hoursFromMidnight;      // Nata（夜）之力
+      if (natBal < 0) natBal = 0; if (natBal > 60) natBal = 60;
+      r.nathonnata = (n === '水星') ? 60
+        : (['太陰', '火星', '土星'].indexOf(n) >= 0 ? natBal : 60 - natBal);
+      r.paksha = isBenefic(n) ? pakshaBenefic : 60 - pakshaBenefic;
+      r.tribhaga = (n === '木星') ? 60
+        : (C.isDay ? (TRI_DAY[third] === n ? 60 : 0) : (TRI_NIGHT[third] === n ? 60 : 0));
+      r.dina = (C.dayLordIdx !== undefined && P7_WEEK[C.dayLordIdx] === n) ? 45 : 0;
+      r.hora = (C.horaLordIdx !== undefined && P7_WEEK[C.horaLordIdx] === n) ? 60 : 0;
+      r.varsha = (C.varshaLordIdx !== undefined && P7_WEEK[C.varshaLordIdx] === n) ? 15 : 0;
+      r.masa = (C.masaLordIdx !== undefined && P7_WEEK[C.masaLordIdx] === n) ? 30 : 0;
+      /* Ayana Bal＝(23°27′ ± 赤緯) × 1.2793；月土南緯為正，日火木金北緯為正，水恆正 */
+      var kr = C.dec[n];
+      var plus = (n === '水星') ? Math.abs(kr)
+        : (['太陰', '土星'].indexOf(n) >= 0 ? -kr : kr);
+      r.ayana = (23.45 + plus) * 1.2793;
+      if (r.ayana < 0) r.ayana = 0; if (r.ayana > 60) r.ayana = 60;
+      if (n === '太陽') r.ayana *= 2;                  // 通行加倍，原文未明言，本引擎從之並標明
+      r.kala = r.nathonnata + r.paksha + r.tribhaga + r.dina + r.hora + r.varsha + r.masa + r.ayana;
+      /* 四、Cheṣṭā Bala：外行星以太陽平黃經為śīghrocca，內行星以己之平黃經 */
+      if (n === '太陽') r.chesta = r.ayana;            // 通行：日之動力即其 Ayana Bala
+      else if (n === '太陰') r.chesta = r.paksha;      // 通行：月之動力即其 Pakṣa Bala
+      else {
+        var ml = XY.mod(meanLon(n, T) - C.ayan, 360);
+        var inner = (n === '水星' || n === '金星');
+        var madhyama = inner ? sunMean : ml, sighra = inner ? ml : sunMean;
+        var ck = XY.mod(sighra - (madhyama + L) / 2, 360);
+        if (ck > 180) ck = 360 - ck;
+        r.chesta = ck / 3;
+      }
+      /* 五、Naisargika：一 Rūpa 分七，土一金二水三木四金五月六日七 */
+      r.naisargika = { 土星: 60 / 7, 火星: 120 / 7, 水星: 180 / 7, 木星: 240 / 7,
+        金星: 300 / 7, 太陰: 360 / 7, 太陽: 60 }[n];
+      /* 六、Dṛk Bala：受吉視為正、凶視為負，各以其視力四分之一計 */
+      var dk = 0;
+      P7V.forEach(function (m) {
+        if (m === n) return;
+        var d2 = XY.mod(RASI.indexOf(RASI[C.sIdx[n]]) - C.sIdx[m], 12) + 1;
+        if (drishti(m).indexOf(d2) < 0) return;
+        dk += (isBenefic(m) ? 15 : -15);
+      });
+      r.drik = dk;
+      r.total = r.sthana + r.dig + r.kala + r.chesta + r.naisargika + r.drik;
+      r.rupa = r.total / 60;
+      r.need = { 太陽: 390, 太陰: 360, 火星: 300, 水星: 420, 木星: 390, 金星: 330, 土星: 300 }[n];
+      r.ratio = r.total / r.need;
+      out[n] = r;
+    });
+    return out;
+  }
+  var P7_WEEK = ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星'];
+  /* Ahargaṇa：一八六〇年一月一日已歷 714,404,108,573 日（原文引 Burgess 之數） */
+  function ahargana(jdUT) {
+    return 714404108573 + Math.floor(jdUT + 0.5) - 2400411;   // 定為使一八六〇年一月一日恰得原文之數
+  }
+  function varshaLord(jdUT) {
+    var A = ahargana(jdUT), q = Math.floor(A / 60);
+    return XY.mod(q * 3 + 1 - 1, 7);
+  }
+  function masaLord(jdUT) {
+    var A = ahargana(jdUT), q = Math.floor(A / 30);
+    return XY.mod(q * 2 + 1 - 1, 7);
+  }
+
   /* ── 另三組 Yoga（條件明確、可由宮主落點實判） */
   function yogasExt(C) {
     var out = [], KEN = [1, 4, 7, 10], TRI = [1, 5, 9], pairs = [];
@@ -3113,7 +3305,10 @@ var VD = (function (XY) {
     YOGA27: YOGA27, KARANA_M: KARANA_M, KARANA_F: KARANA_F, panchanga: panchanga,
     tatkalika: tatkalika, panchadha: panchadha, AVASTHA: AVASTHA, avastha: avastha,
     CHARA: CHARA, charaKaraka: charaKaraka, AV: AV, ashtaka: ashtaka, ashtakaTotal: ashtakaTotal,
-    yogasExt: yogasExt };
+    yogasExt: yogasExt,
+    SB_REL: SB_REL, SB_VARGA: SB_VARGA, deepDebil: deepDebil, meanLon: meanLon,
+    vargaSign: vargaSign, shadbala: shadbala, P7_WEEK: P7_WEEK,
+    ahargana: ahargana, varshaLord: varshaLord, masaLord: masaLord };
 })(XY);
 
 
@@ -5922,6 +6117,34 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         && ji.indexOf('金星') >= 0 && ji.indexOf('木星') >= 0
         && wu && wu.k === '火星' && wu.note;
     })(), '吉＝日月金木、凶＝土火羅孛計；原文「無」疑火之訛，raw 存原字而判斷用火');
+    ok('Almuten：某度七曜以必然尊貴計分，最高者為勝（牡羊十度得太陽七分）', (function () {
+      var a = HL.almuten(10, true), b = HL.almuten(195, true), c = HL.almuten(105, true);
+      return a.top.yao === '太陽' && a.top.v === 7
+        && b.top.yao === '土星' && b.top.v === 7
+        && c.top.yao === '太陰' && c.top.v === 8;
+    })(), '牡羊十度：太陽旺4＋三分3＝7，勝火星之廟5。天秤十五度：土星旺4＋三分3。巨蟹十五度：太陰廟5＋三分3');
+    ok('Ṣaḍbala：Naisargika 合古法（一 Rūpa 分七，日最強土最弱）', (function () {
+      var C = null;
+      var n = { 土星: 60 / 7, 火星: 120 / 7, 水星: 180 / 7, 木星: 240 / 7,
+        金星: 300 / 7, 太陰: 360 / 7, 太陽: 60 };
+      var ks = Object.keys(n), mx = ks.reduce(function (a2, b2) { return n[a2] > n[b2] ? a2 : b2; });
+      var mn = ks.reduce(function (a2, b2) { return n[a2] < n[b2] ? a2 : b2; });
+      return mx === '太陽' && mn === '土星' && Math.abs(n['太陰'] - 360 / 7) < 1e-9;
+    })(), 'BPHS 二十七章：一 Rūpa 除七，依次乘一至七予土火水木金月日');
+    ok('Ṣaḍbala：Uccha Bala 於深旺點得六十、深弱點得零', (function () {
+      var dSun = VD.deepDebil('太陽');
+      var atExalt = Math.abs(XY.mod(10 - dSun + 180, 360) - 180) / 3;
+      var atDebil = Math.abs(XY.mod(dSun - dSun + 180, 360) - 180) / 3;
+      return dSun === 190 && Math.abs(atExalt - 60) < 1e-9 && Math.abs(atDebil - 0) < 1e-9;
+    })(), '深弱點＝深旺點之對宮同度；太陽旺牡羊十度故弱天秤十度');
+    ok('Ṣaḍbala：Ahargaṇa 於一八六〇年一月一日恰為原文所載之數', (function () {
+      return VD.ahargana(XY.toJD(1860, 1, 1, 0)) === 714404108573;
+    })(), 'BPHS 引 Burgess 譯 Sūrya Siddhānta 之數，為年主月主之所本');
+    ok('Ṣaḍbala：七分力之關係計分與應達之數合原文', (function () {
+      var R = VD.SB_REL;
+      return R['根本三角'] === 45 && R['本宮'] === 30 && R['極友'] === 20 && R['友'] === 15
+        && R['中'] === 10 && R['敵'] === 4 && R['極敵'] === 2 && VD.SB_VARGA.length === 7;
+    })(), '七盤＝Rāśi・Horā・Drekkāṇa・Saptāṁśa・Navāṁśa・Dvādaśāṁśa・Triṁśāṁśa');
     ok('太陽行度歌二十四條齊備，宿名皆在二十八宿之內', (function () {
       return HAN.XINGDU.length === 24
         && HAN.XINGDU.every(function (x) { return HAN.ORD.indexOf(x[2]) >= 0 && x[3] > 0; })
@@ -7254,6 +7477,37 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + (XY.mod(a.asc, 30)).toFixed(2) + '°，其廟主 <b>' + esc(mlord) + '</b> 即命主星。七曜尊貴總分 '
       + (tot > 0 ? '+' : '') + tot + '。</div></div>';
 
+    h += '<div class="card"><h2>明細一之二　Almuten　某度之勝者</h2>'
+      + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+      + '<b>Almuten</b>（阿拉伯語 mubtazz，拉丁轉寫，意為「勝者」）——'
+      + '問的是：<b>這一個度數，誰說了算？</b><br><br>'
+      + '作法很直接：在該度上，七曜各以其必然尊貴計分（廟5・旺4・三分3・界2・面1），'
+      + '分數最高的那一顆，就是這一度的 almuten。<br><br>'
+      + '古典最常問四個點：<b>上升</b>（此人本身由誰主）、<b>太陽</b>與<b>太陰</b>、'
+      + '以及<b>中天</b>（事業由誰主）。下表逐一列出。</div></div>'
+      + '<table><tr><th>所問之點</th><th>度數</th><th>Almuten</th><th>何以得之</th><th>次者</th></tr>';
+    [['上升', a.asc], ['中天', a.mc], ['太陽', lonOf['太陽']], ['太陰', lonOf['太陰']]].forEach(function (q) {
+      var am = HL.almuten(q[1], isDay);
+      h += '<tr><td class="su">' + esc(q[0]) + '</td>'
+        + '<td class="su" style="font-size:14px">' + esc(am.sign) + ' ' + XY.mod(q[1], 30).toFixed(2) + '°</td>'
+        + '<td class="qi" style="font-size:16px">' + (am.top ? esc(am.top.yao) : '—')
+        + (am.top ? '<span class="tiny" style="color:var(--mu)">　' + am.top.v + ' 分</span>' : '')
+        + (am.tie ? '<span class="tag r">並列</span>' : '') + '</td>'
+        + '<td class="tiny">' + (am.top ? esc(am.top.how) : '') + '</td>'
+        + '<td class="tiny">' + am.list.slice(1, 4).map(function (x) {
+            return esc(x.yao) + ' ' + x.v; }).join('　') + '</td></tr>';
+    });
+    h += '</table>'
+      + '<div class="note" style="margin-top:10px"><span class="tag r">全盤 almuten 未做</span>'
+      + '除「某度之 almuten」外，古典另有<b>全盤之 almuten</b>（Almuten Figuris）——'
+      + '取上升・日・月・朔望・福點五處，合其尊貴再加宮位與晝夜之分。'
+      + '然其加分之細目<b>各家不一</b>（Ibn Ezra 一系與 Lilly 一系所取不同），'
+      + '而所據之 Dykes《Traditional Astrology for Today》為入門書，'
+      + '其詞彙表只出定義而指向他作，未載算式。<b>本引擎寧缺不擬</b>——'
+      + '得其原本後當補，並須標明所從何家。<br>'
+      + '<span class="tiny" style="color:var(--mu)">'
+      + '並列者（分數相同）本引擎照實標出，不代為取捨——古法於此亦有以宮位或晝夜再分者，'
+      + '同屬各家不一之列。</span></div></div>';
     h += '<div class="card"><h2>明細二　偶然尊貴</h2>'
       + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
       + '必然尊貴問的是「這顆星站在誰的地盤上」，<b>偶然尊貴問的是「它此刻的處境好不好」</b>——'
@@ -7841,6 +8095,125 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     });
     h += '</table></div>';
 
+    /* ── 六之三之二、Ṣaḍbala 六分力 ── */
+    (function () {
+      var eps = XY.nutObl((T.jdTT - 2451545) / 36525).eps;
+      var decOf = {}, sidOf = {}, sIdxOf = {}, houseOf2 = {};
+      VD.P7V.forEach(function (n) {
+        var r = rows.filter(function (x) { return x[0] === n; })[0]; if (!r) return;
+        var lat0 = (n === '太陰') ? XY.moonLat(T.jdTT)
+          : (n === '太陽') ? 0 : (PL.geoLon(n, T.jdTT).lat || 0);
+        decOf[n] = HZ.eqOf(r[1], lat0, eps).dec;
+        sidOf[n] = sid(r[1]);
+        sIdxOf[n] = VD.RASI.indexOf(VD.rasiOf(sidOf[n]));
+        houseOf2[n] = XY.mod(sIdxOf[n] - ai, 12) + 1;
+      });
+      /* 日出日沒（幾何 −50′），為 Tribhāga 與 Horā 所需 */
+      function altAt(hr) {
+        var jU = XY.toJD(civB.y, civB.m, civB.d, hr - 8);
+        return HZ.toShan('太陽', jU, jU + XY.deltaT(civB.y) / 86400, v.lon, v.lat).alt;
+      }
+      function cross(lo, hi) {
+        for (var i = 0; i < 40; i++) { var m = (lo + hi) / 2;
+          if (altAt(m) < HZ.HORIZON) lo = m; else hi = m; }
+        return (lo + hi) / 2;
+      }
+      var rise = null, set = null;
+      for (var q2 = 0; q2 < 24; q2++) {
+        var a1 = altAt(q2), a2 = altAt(q2 + 1);
+        if (a1 < HZ.HORIZON && a2 >= HZ.HORIZON && rise === null) rise = cross(q2, q2 + 1);
+        if (a1 >= HZ.HORIZON && a2 < HZ.HORIZON && set === null) set = cross(q2 + 1, q2);
+      }
+      if (rise === null) rise = 6; if (set === null) set = 18;
+      var bh = v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0);
+      var isDay2 = (bh >= rise && bh < set);
+      var dayFrac = isDay2 ? (bh - rise) / Math.max(0.1, set - rise)
+        : XY.mod(bh - set, 24) / Math.max(0.1, 24 - (set - rise));
+      var fromMid = Math.abs(bh <= 12 ? bh : 24 - bh);
+      var dn0 = XYD.dayNo(T.jdUT), wi0 = XY.mod(dn0 + 1, 7);
+      /* Horā：日出起，第一時屬當日之主，其後依迦勒底次序 */
+      var CHAL = ['土星', '木星', '火星', '太陽', '金星', '水星', '太陰'];
+      var hoursFromRise = XY.mod(bh - rise, 24);
+      var dayLordName = VD.P7_WEEK[wi0];
+      var horaName = CHAL[XY.mod(CHAL.indexOf(dayLordName) + Math.floor(hoursFromRise), 7)];
+      var SB = VD.shadbala({
+        sid: sidOf, asc: sidAsc, houses: houseOf2, sIdx: sIdxOf, dec: decOf,
+        isDay: isDay2, dayFrac: dayFrac, hoursFromMidnight: fromMid,
+        dayLordIdx: wi0, horaLordIdx: VD.P7_WEEK.indexOf(horaName),
+        varshaLordIdx: VD.varshaLord(T.jdUT), masaLordIdx: VD.masaLord(T.jdUT),
+        jdUT: T.jdUT, jdTT: T.jdTT, ayan: ay
+      });
+      h += '<div class="card"><h2>Ṣaḍbala　六分力</h2>'
+        + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+        + '吠陀最完整的量化制，把一顆曜的力氣拆成六大類逐項計分，單位叫 <b>Virūpa</b>，'
+        + '六十 Virūpa 為一 Rūpa。<br><br>'
+        + '<b>Sthāna</b> 位置之力（離旺點多遠、七張分盤各落誰家、奇偶宮、角宮與否、在第幾個十度）／'
+        + '<b>Dig</b> 方位之力（日火喜四宮、木水喜七宮、金月喜十宮、土喜命宮）／'
+        + '<b>Kāla</b> 時間之力（晝夜、月之盈虧、晝夜三分、年月日時之主、黃赤緯）／'
+        + '<b>Cheṣṭā</b> 動之力／<b>Naisargika</b> 自然之力（日最強土最弱，固定不變）／'
+        + '<b>Dṛk</b> 視之力（受吉視為正、凶視為負）。<br><br>'
+        + '每曜有其<b>應達之數</b>（日390・月360・火300・水420・木390・金330・土300），'
+        + '達之則謂之強。下表末欄之比值即此。<br><br>'
+        + '<b>羅計不入此制</b>——原文明言「The nodes are not considered」。</div></div>'
+        + '<table><tr><th>曜</th><th>Sthāna</th><th>Dig</th><th>Kāla</th><th>Cheṣṭā</th>'
+        + '<th>Naisargika</th><th>Dṛk</th><th>合計</th><th>Rūpa</th><th>應達</th><th>比值</th></tr>';
+      VD.P7V.forEach(function (n) {
+        var b = SB[n]; if (!b) return;
+        h += '<tr><td class="qi">' + esc(n) + '</td>'
+          + '<td class="num">' + b.sthana.toFixed(1) + '</td>'
+          + '<td class="num">' + b.dig.toFixed(1) + '</td>'
+          + '<td class="num">' + b.kala.toFixed(1) + '</td>'
+          + '<td class="num">' + b.chesta.toFixed(1) + '</td>'
+          + '<td class="num">' + b.naisargika.toFixed(1) + '</td>'
+          + '<td class="num' + (b.drik < 0 ? ' neg' : '') + '">' + b.drik.toFixed(1) + '</td>'
+          + '<td class="num" style="color:var(--jin2)">' + b.total.toFixed(1) + '</td>'
+          + '<td class="num">' + b.rupa.toFixed(2) + '</td>'
+          + '<td class="num">' + b.need + '</td>'
+          + '<td class="num" style="color:' + (b.ratio >= 1 ? 'var(--lv)' : 'var(--zhu)') + '">'
+          + b.ratio.toFixed(2) + (b.ratio >= 1 ? ' <span class="tag g">達</span>' : '') + '</td></tr>';
+      });
+      h += '</table>';
+      var rank = VD.P7V.slice().sort(function (a2, b2) { return SB[b2].total - SB[a2].total; });
+      h += '<div class="note" style="margin-top:10px">本盤六分力最強者 <b>' + esc(rank[0]) + '</b>（'
+        + SB[rank[0]].total.toFixed(1) + '）、最弱者 <b>' + esc(rank[6]) + '</b>（'
+        + SB[rank[6]].total.toFixed(1) + '）。'
+        + '達其應達之數者：' + (function () {
+            var g = VD.P7V.filter(function (n) { return SB[n].ratio >= 1; });
+            return g.length ? '<b>' + g.join('・') + '</b>' : '無';
+          })() + '。</div>';
+      h += '<details class="orig" style="margin-top:10px"><summary>看 Kāla 與 Sthāna 之逐項拆解</summary>'
+        + '<table><tr><th>曜</th><th>Uccha</th><th>七分力</th><th>奇偶</th><th>角宮</th><th>十度</th>'
+        + '<th>晝夜</th><th>月分</th><th>三分</th><th>年月日時</th><th>Ayana</th></tr>';
+      VD.P7V.forEach(function (n) {
+        var b = SB[n]; if (!b) return;
+        h += '<tr><td class="qi">' + esc(n) + '</td>'
+          + '<td class="num">' + b.uccha.toFixed(1) + '</td><td class="num">' + b.saptavarga.toFixed(0) + '</td>'
+          + '<td class="num">' + b.ojayugma + '</td><td class="num">' + b.kendradi + '</td>'
+          + '<td class="num">' + b.drekkana + '</td>'
+          + '<td class="num">' + b.nathonnata.toFixed(1) + '</td><td class="num">' + b.paksha.toFixed(1) + '</td>'
+          + '<td class="num">' + b.tribhaga + '</td>'
+          + '<td class="num">' + (b.varsha + b.masa + b.dina + b.hora) + '</td>'
+          + '<td class="num">' + b.ayana.toFixed(1) + '</td></tr>';
+      });
+      h += '</table>'
+        + '<div class="tiny" style="margin-top:8px">'
+        + '本盤日出 ' + rise.toFixed(2) + ' 時、日沒 ' + set.toFixed(2) + ' 時（幾何 −50′），'
+        + '生時為<b>' + (isDay2 ? '晝' : '夜') + '</b>；當日之主 <b>' + esc(dayLordName)
+        + '</b>、當時之主 <b>' + esc(horaName) + '</b>（自日出起依迦勒底次序）。'
+        + 'Ahargaṇa ' + VD.ahargana(T.jdUT).toLocaleString() + ' 日，'
+        + '年主 <b>' + esc(VD.P7_WEEK[VD.varshaLord(T.jdUT)]) + '</b>、'
+        + '月主 <b>' + esc(VD.P7_WEEK[VD.masaLord(T.jdUT)]) + '</b>。</div>'
+        + '<div class="note" style="margin-top:8px"><span class="tag j">實作之取捨，逐項標明</span>'
+        + '<b>Cheṣṭā</b>：原文並出二法——一為八種行度（逆行六十、留十五…），'
+        + '然其遲疾之界原文未給數，無從實判；一為 Cheṣṭā Kendra（śīghrocca 減平真之中數，再除三）。'
+        + '<b>本引擎取後者</b>，平黃經用標準式。日之動力取其 Ayana Bala、月取其 Pakṣa Bala，此為通行之補。<br>'
+        + '<b>Ayana Bala</b>：太陽之值通行加倍，原文未明言，本引擎從通行而標明於此。<br>'
+        + '<b>Yuddha Bala</b>（行星交戰）<b>未做</b>：其法為兩曜相距一度內，'
+        + '以二者六分力之差加於勝者、減於負者——而六分力本身尚未算畢，其定義循環，'
+        + '各家解法不一。本引擎寧缺不擬。<br>'
+        + '<b>Bhāva Bala</b>（宮之力）未做：原文另立一節，非曜之力。</div></details></div>';
+    })();
+
     /* ── 六之四、Aṣṭakavarga ── */
     h += '<div class="card"><h2>Aṣṭakavarga　八分力</h2>'
       + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
@@ -8078,7 +8451,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 244 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 249 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
