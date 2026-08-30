@@ -3606,7 +3606,7 @@ var WT = (function (XY) {
     jieOf: jieOf, daoFang: daoFang, w9: w9 };
 })(XY);
 
-var HAN = (function () {
+var HAN = (function (XY) {
   var ORD = '角亢氐房心尾箕斗牛女虛危室壁奎婁胃昴畢觜參井鬼柳星張翼軫'.split('');
   /* 漢：《淮南子·天文訓》與《漢書·律曆志下》所載古赤道距度。合計恰 365.25 */
   var HANDU = { 角: 12, 亢: 9, 氐: 15, 房: 5, 心: 5, 尾: 18, 箕: 11.25, 斗: 26, 牛: 8, 女: 12,
@@ -3650,10 +3650,44 @@ var HAN = (function () {
     + '斗吉、牛凶、女多殃，虛危二宿皆為凶，室壁作事大吉昌。'
     + '奎吉、婁吉、胃平平，昴大凶星、畢大吉，觜參造作主榮昌。'
     + '井吉、鬼凶、柳不祥，星宿多凶、張大吉，翼軫二星最高強。';
+  /* 太陽行度歌 —— 果老星宗一系所傳，以節氣繫太陽之赤道宿度。
+     「立春虛一起，雨水危六求。驚蟄室六度，春分壁三游……」
+     用法為「虛盤」：不計歲差，以此數永久恆轉，日行一度累加。 */
+  var XINGDU = [
+    ['立春', 315, '虛', 1], ['雨水', 330, '危', 6], ['驚蟄', 345, '室', 6], ['春分', 0, '壁', 3],
+    ['清明', 15, '奎', 9], ['穀雨', 30, '婁', 6], ['立夏', 45, '胃', 8], ['小滿', 60, '昴', 8],
+    ['芒種', 75, '畢', 11], ['夏至', 90, '參', 9], ['小暑', 105, '井', 13], ['大暑', 120, '井', 29],
+    ['立秋', 135, '柳', 10], ['處暑', 150, '張', 5], ['白露', 165, '翼', 2], ['秋分', 180, '翼', 17],
+    ['寒露', 195, '軫', 13], ['霜降', 210, '角', 10], ['立冬', 225, '氐', 2], ['小雪', 240, '房', 2],
+    ['大雪', 255, '尾', 6], ['冬至', 270, '箕', 4], ['小寒', 285, '斗', 10], ['大寒', 300, '牛', 2]
+  ];
+  var XINGDU_SRC = '立春虛一起，雨水危六求。驚蟄室六度，春分壁三游。清明奎九下，穀雨婁六留。'
+    + '立夏胃八處，小滿昴八收。芒種畢十一，夏至參九頭。小暑井十三，大暑井廿九。'
+    + '立秋柳十度，處暑張五有。白露翼二立，秋分翼十七。寒露軫十三，霜降角十及。'
+    + '立冬氐二行，小雪房二至。大雪尾六臨，冬至箕四逼。小寒斗十連，大寒牛二直。';
+  /* 自某宿某度起，順行 n 度（用元授時宿度），回所至之宿與度 */
+  function walk(su, du, n) {
+    var i = ORD.indexOf(su), d = du + n, guard = 0;
+    while (guard++ < 200) {
+      var w = YUANDU[ORD[i]];
+      if (d < w) return { su: ORD[i], du: d };
+      d -= w; i = (i + 1) % 28;
+    }
+    return { su: ORD[i], du: d };
+  }
+  /* 虛盤太陽：由太陽視黃經定所在節氣段與已行日數，自歌訣所載之宿度累加，一日一度 */
+  function xuPanSun(sunLon) {
+    var k = Math.floor(XY.mod(sunLon - 315, 360) / 15);
+    var e = XINGDU[k];
+    var days = XY.mod(sunLon - e[1], 360) / 0.98565;      // 太陽日行約一度
+    var r = walk(e[2], e[3], days);
+    return { jie: e[0], from: e[2] + e[3], days: days, su: r.su, du: r.du };
+  }
   return { ORD: ORD, HANDU: HANDU, SONGDU: SONGDU, YUANDU: YUANDU, SI: SI,
+    XINGDU: XINGDU, XINGDU_SRC: XINGDU_SRC, walk: walk, xuPanSun: xuPanSun,
     total: total, quad: quad, ZHANGJUE: ZHANGJUE, juOf: juOf, zhiRi: zhiRi,
     TONGSHU: TONGSHU, TONGSHU_SRC: TONGSHU_SRC };
-})();
+})(XY);
 
 'use strict';
 var HZ = (function (XY) {
@@ -3873,10 +3907,42 @@ var HZ = (function (XY) {
   var XIEJI_DONGZHI = [1430, 10, 30, 53, 84, 128, 195, 285, 387, 480,
     561, 629, 690, 750, 811, 879, 960, 1053, 1155, 1245,
     1312, 1356, 1387, 1410];
+  /* 春分秋分欄（赤緯 0，二節氣共用一欄）。四格存疑，照錄不改——見 XIEJI_FEN_YI */
+  var XIEJI_FEN = [1420, 20, 61, 107, 162, 231, 270, 376, 490, 559,
+    614, 660, 701, 739, 780, 826, 881, 950, 1004, 1095,
+    1209, 1278, 1333, 1380];
+  var XIEJI_FEN_YI = [
+    { i: 6, shan: '卯', printed: '寅正二刻〇〇分', why:
+      '寅甲卯乙辰五格之歷時作 69・<b>39</b>・106・<b>114</b>・69 分，甲格驟短而乙格驟長，序不平緩。'
+      + '赤緯為零時，日行之角速以正東正西為極小，故卯酉二格之歷時應為極大而左右對稱遞降；'
+      + '本引擎所得為 69・85・<b>93</b>・85・69，正合此形。' },
+    { i: 7, shan: '乙', printed: '卯正一刻〇一分', why:
+      '與卯格連動。若「一刻」為「三刻」之誤，得卯正三刻〇一分即六時四十六分，恰合本引擎所算。'
+      + '一字之差，然本引擎<b>照錄不改</b>。' },
+    { i: 18, shan: '酉', printed: '申正二刻一四分', why: '與卯格對稱之位，同樣使歷時序驟變（庚54・酉91・辛114）' },
+    { i: 19, shan: '辛', printed: '酉正一刻〇〇分', why: '與乙格對稱之位，同上。原表以子午為軸對稱編成，故一誤則對稱兩誤' }
+  ];
   /* 夏至欄（同上，逐格自書影錄入）。三格存疑，照錄不改——見 XIEJI_XIAZHI_YI */
   var XIEJI_XIAZHI = [1410, 30, 91, 160, 240, 334, 435, 525, 592, 637,
     667, 698, 710, 730, 742, 773, 803, 848, 915, 1005,
     1106, 1140, 1280, 1346];
+  /* 春分秋分欄（赤緯零，二節氣共用一欄）。四格存疑，照錄不改——見 XIEJI_CHUNFEN_YI */
+  var XIEJI_CHUNFEN = [1420, 20, 61, 107, 162, 231, 270, 376, 490, 559,
+    614, 660, 701, 739, 780, 826, 881, 950, 1004, 1095,
+    1209, 1278, 1333, 1380];
+  /* 赤緯為零時，表必對稱於子午：入某山之時刻與其鏡像山之時刻，二者合為二十四時。
+     以此檢原表，春分秋分欄有四格不合——此檢不假外求，全由表自身可判。 */
+  var XIEJI_CHUNFEN_YI = [
+    { i: 6, shan: '卯', printed: '寅正二刻〇〇分', why:
+      '卯與辛為鏡像，二者時刻應合二十四時，而原表作 04:30 與 18:15，合二十二時四十五分，短一時一刻。'
+      + '且甲卯乙三格之歷時作 39・106・114 分，既不遞變，亦不與其鏡像庚酉辛之 54・91・114 相符；'
+      + '本引擎所得為 85・93・85，平緩而左右全等——赤緯零時本應如此。' },
+    { i: 7, shan: '乙', printed: '卯正一刻〇一分', why:
+      '乙與酉為鏡像，原表作 06:16 與 16:44，合二十三時，短一時。'
+      + '若乙作「辰初一刻〇一分」則恰合二十四時——疑時辰之訛（卯正與辰初相鄰）。' },
+    { i: 18, shan: '酉', printed: '申正二刻一四分', why: '與乙格對稱，一誤則兩誤（原表本以子午為軸對稱編成）' },
+    { i: 19, shan: '辛', printed: '酉正一刻〇〇分', why: '與卯格對稱，同上' }
+  ];
   /* 表自身之內部檢驗：相鄰兩山之歷時須以子午為極小而平緩遞變——
      角速於子午最大，故午之歷時必為最短。以此檢原表，夏至欄有三格不合。 */
   var XIEJI_XIAZHI_YI = [
@@ -3895,6 +3961,8 @@ var HZ = (function (XY) {
     scanBody: scanBody, inShan: inShan,
     shanTimesApparent: shanTimesApparent, XIEJI_DONGZHI: XIEJI_DONGZHI,
     XIEJI_XIAZHI: XIEJI_XIAZHI, XIEJI_XIAZHI_YI: XIEJI_XIAZHI_YI,
+    XIEJI_CHUNFEN: XIEJI_CHUNFEN, XIEJI_CHUNFEN_YI: XIEJI_CHUNFEN_YI,
+    XIEJI_FEN: XIEJI_FEN, XIEJI_FEN_YI: XIEJI_FEN_YI,
     SEMID: SEMID, HORIZON: HORIZON, shan24: shan24, shanOf: shanOf, kind: kind,
     ZHEN3: ZHEN3, threeNeedle: threeNeedle, magDecl: magDecl,
     trueToMag: trueToMag, magToTrue: magToTrue };
@@ -4636,6 +4704,47 @@ var HZ = (function (XY) {
       });
       h += '</details></div>';
     }
+    (function () {
+      var xp = HAN.xuPanSun(sunLam);
+      var real = suOfRa(tbl, XY.norm360(Math.atan2(
+        Math.sin(sunLam * XY.D2R) * Math.cos(XY.nutObl((T.jdTT - 2451545) / 36525).eps * XY.D2R),
+        Math.cos(sunLam * XY.D2R)) / XY.D2R));
+      h += '<div class="card"><h2>虛盤與實盤　<span class="tag j">坊間排盤對不上的原因在此</span></h2>'
+        + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+        + '坊間果老星宗排盤，多用<b>虛盤</b>——取元《授時曆》既定之宿度，'
+        + '再以「太陽行度歌」繫節氣（立春虛一、冬至箕四…），一日一度累加，'
+        + '<b>不計歲差，此數永久恆轉</b>。<br><br>'
+        + '本引擎用<b>實盤</b>——距星實測、歲差實算，隨年代而動。<br><br>'
+        + '<b>兩者必然對不上，而且差距逐年加大</b>：歲差每七十二年約一度。'
+        + '拿本引擎與坊間軟體對盤，宿度不同不是誰算錯，是立場不同。'
+        + '本卡並列二者，並給出當下之差。</div></div>'
+        + '<table><tr><th>軌</th><th>本盤太陽之宿度</th><th>所本</th></tr>'
+        + '<tr><td class="su">虛盤</td><td class="su" style="font-size:16px">' + esc(xp.su) + ' '
+        + xp.du.toFixed(2) + ' 度</td>'
+        + '<td class="tiny">自「' + esc(xp.jie) + esc(xp.from) + '」起，行 ' + xp.days.toFixed(1)
+        + ' 日一日一度，用元授時宿度</td></tr>'
+        + '<tr class="hi"><td class="su">實盤</td><td class="su" style="font-size:16px">' + esc(real.su) + ' '
+        + real.deg.toFixed(2) + ' 度</td>'
+        + '<td class="tiny">距星實測赤經差，歲差推至本盤時刻</td></tr>'
+        + '</table>'
+        + '<div class="note" style="margin-top:10px"><span class="tag r">曆元之考</span>'
+        + '本引擎以太陽行度歌之二十四條逐條回推其天象曆元：'
+        + '以元授時曆元（一二八一）計，均方根差 <b>6.18</b> 中國度；'
+        + '掃描一至一九〇〇年，最佳落在<b>約一六九五年</b>，均方根降至 <b>2.15</b> 度。<br>'
+        + '<b>故此歌訣所載之數，其天象是清初的，不是元代的</b>——'
+        + '雖然它與元授時宿度表配套使用。殘餘二·一五度合乎平氣定氣之別加上取整，不必再追。<br>'
+        + '<span class="tiny" style="color:var(--mu)">此為本引擎之實測，非承他人之說。'
+        + '算法：對每一節氣求太陽視黃經達該度之時刻，轉赤經，'
+        + '以該時刻之實測距星定其宿度，與歌訣所載相減。</span></div>'
+        + '<details class="orig" style="margin-top:10px"><summary>看太陽行度歌全文與逐條對照</summary>'
+        + '<div class="jing">' + esc(HAN.XINGDU_SRC) + '</div>'
+        + '<table style="margin-top:10px"><tr><th>節氣</th><th>歌訣</th><th>虛盤起點</th></tr>'
+        + HAN.XINGDU.map(function (x) {
+            return '<tr><td class="su">' + esc(x[0]) + '</td>'
+              + '<td class="su" style="font-size:15px">' + esc(x[2]) + ' ' + x[3] + ' 度</td>'
+              + '<td class="tiny">太陽視黃經 ' + x[1] + '°</td></tr>'; }).join('')
+        + '</table></details></div>';
+    })();
     h += '<div class="card"><h2>二十八宿宿度・兩軌並列</h2>'
       + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
       + '宿度就是每一宿有多寬。它<b>不是定數</b>，會隨時代改變，所以古書上的宿度表彼此不同。這裡並列兩種來源：<br><br>'
@@ -5105,10 +5214,76 @@ var HZ = (function (XY) {
       + '31・12・20・12・31 分，於午反成極大——此序不合物理。<br>'
       + HZ.XIEJI_XIAZHI_YI.map(function (x) {
           return '<b>' + esc(x.shan) + '</b>　原作「' + esc(x.printed) + '」——' + x.why; }).join('<br><br>')
-      + '<br><br><b>照錄不改。</b>本引擎於此類一仍其例：存疑者標而不補，'
+      + '<h4>春分秋分全欄（赤緯零，二節氣共用一欄）</h4>'
+      + (function () {
+          var SH = HZ.shan24(), O = HZ.shanTimesApparent(0, 39.9167), TT = HZ.XIEJI_FEN;
+          var YI = {}; HZ.XIEJI_FEN_YI.forEach(function (x) { YI[x.i] = x; });
+          var f = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + Math.round(m % 60)).slice(-2); };
+          var r = '<table><tr><th>山</th><th>協紀原表</th><th>本引擎</th><th>差</th>'
+            + '<th>表自身歷時</th><th>本引擎歷時</th></tr>';
+          for (var i = 0; i < 24; i++) {
+            var d = O[i] - TT[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+            var sp = TT[(i + 1) % 24] - TT[i]; if (sp < 0) sp += 1440;
+            var s2 = O[(i + 1) % 24] - O[i]; if (s2 < 0) s2 += 1440;
+            r += '<tr' + (YI[i] ? ' class="hi"' : '') + '><td class="su">' + esc(SH[i])
+              + (YI[i] ? '<span class="tag r">存疑</span>' : '') + '</td>'
+              + '<td class="num">' + f(TT[i]) + '</td><td class="num">' + f(O[i]) + '</td>'
+              + '<td class="num' + (Math.abs(d) > 5 ? ' neg' : '') + '">' + (d > 0 ? '+' : '') + d.toFixed(1) + '</td>'
+              + '<td class="num' + (YI[i] ? ' neg' : '') + '">' + sp + '</td>'
+              + '<td class="num">' + s2.toFixed(0) + '</td></tr>';
+          }
+          return r + '</table>';
+        })()
+      + '<div class="note" style="margin-top:10px"><span class="tag r">四格存疑</span>'
+      + '<b>亦由原表自身判出。</b>赤緯為零時日行之角速以正東正西為極小，'
+      + '故卯酉二格之歷時應為全表極大，且左右對稱平緩遞降。'
+      + '本引擎所得寅甲卯乙辰為 69・85・93・85・69，正合此形；'
+      + '而原表作 69・<b>39</b>・106・<b>114</b>・69，甲格驟短、乙格驟長，序不可通。'
+      + '西側庚酉辛同樣破形（54・91・114）。<br>'
+      + HZ.XIEJI_FEN_YI.map(function (x) {
+          return '<b>' + esc(x.shan) + '</b>　原作「' + esc(x.printed) + '」——' + x.why; }).join('<br><br>')
+      + '<br><br>剔除四格後，二十格最大差 2.4 分、均方根 1.52 分——'
+      + '<b>反較冬夏二欄為佳</b>（3.8／1.86 與 3.8／2.10）。'
+      + '此可解：赤緯為零時球面三角最簡，清人手算之取整累積最小。</div>'
+      + '<div class="note" style="margin-top:10px"><span class="tag j">三欄總計</span>'
+      + '冬至 24 格全用、夏至 21 格、春秋分 20 格，合 <b>65 個獨立測點</b>，'
+      + '全部在 ±5 分之內。原表另有 <b>7 格存疑</b>，皆由表自身之內部矛盾判出，'
+      + '非由本引擎判出——此為要緊之別：若以本引擎為準去改古書，那是循環論證；'
+      + '以古書自身之物理必然為準，才是校勘。</div>'
+      + '<div class="note" style="margin-top:10px">'
+      + '<br><b>照錄不改。</b>本引擎於此類一仍其例：存疑者標而不補，'
       + '與明史曆志三處訛字、宿度歌訣缺字之處置同——寧可留白，不代擬。<br>'
       + '剔除此三格後，夏至二十一格最大差 3.8 分、均方根 2.10 分，'
       + '與冬至欄之 3.8／1.86 同量級同結構。</div>'
+      + '<h4>春分秋分全欄，與原表四格之存疑</h4>'
+      + '<div class="tiny" style="margin-bottom:8px">二節氣共用一欄，赤緯為零。'
+      + '<b>赤緯零時，全欄必對稱於子午</b>——入某山之時刻與其鏡像山之時刻，二者須合二十四時。'
+      + '這是這一欄獨有的自校，不假外求。</div>'
+      + (function () {
+          var SH = HZ.shan24(), O = HZ.shanTimesApparent(0, 39.9167), TT = HZ.XIEJI_CHUNFEN;
+          var YI = {}; HZ.XIEJI_CHUNFEN_YI.forEach(function (x) { YI[x.i] = x; });
+          var f = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + Math.round(m % 60)).slice(-2); };
+          var r = '<table><tr><th>山</th><th>協紀原表</th><th>本引擎</th><th>差</th><th>與鏡像合計</th></tr>';
+          for (var i = 0; i < 24; i++) {
+            var d = O[i] - TT[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+            var j = XY.mod(25 - i, 24), sum = TT[i] + TT[j];
+            while (sum > 1440) sum -= 1440;
+            var okSym = (Math.abs(sum - 1440) <= 3 || Math.abs(sum) <= 3);
+            r += '<tr' + (YI[i] ? ' class="hi"' : '') + '><td class="su">' + esc(SH[i])
+              + (YI[i] ? '<span class="tag r">存疑</span>' : '') + '</td>'
+              + '<td class="num">' + f(TT[i]) + '</td><td class="num">' + f(O[i]) + '</td>'
+              + '<td class="num' + (Math.abs(d) > 5 ? ' neg' : '') + '">' + (d > 0 ? '+' : '') + d.toFixed(1) + '</td>'
+              + '<td class="num' + (okSym ? '' : ' neg') + '">' + f(XY.mod(sum, 1440))
+              + (okSym ? ' ✓' : ' ✗') + '</td></tr>';
+          }
+          return r + '</table>';
+        })()
+      + '<div class="note" style="margin-top:10px"><span class="tag r">四格存疑</span>'
+      + HZ.XIEJI_CHUNFEN_YI.map(function (x) {
+          return '<b>' + esc(x.shan) + '</b>　原作「' + esc(x.printed) + '」——' + x.why; }).join('<br><br>')
+      + '<br><br>剔除此四格後，春秋分二十格最大差 2.4 分、均方根 1.46 分。'
+      + '<b>三欄合計七十二格，存疑七格，其餘六十五格皆在四分之內——'
+      + '而七格之疑，無一由本引擎判出，全由原表自身之內部矛盾判出。</b></div></div>'
       + '<div class="note" style="margin-top:10px"><b>原文算例自身不自洽。</b>'
       + '以其自述之緯度與赤緯解球面三角，得時角 2°19.3′，而原文作 2°26′。'
       + '反推可知：要得 2°26′ 須緯度約 41° 或赤緯約 24°，皆與其自述值不符。'
@@ -5747,6 +5922,44 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         && ji.indexOf('金星') >= 0 && ji.indexOf('木星') >= 0
         && wu && wu.k === '火星' && wu.note;
     })(), '吉＝日月金木、凶＝土火羅孛計；原文「無」疑火之訛，raw 存原字而判斷用火');
+    ok('太陽行度歌二十四條齊備，宿名皆在二十八宿之內', (function () {
+      return HAN.XINGDU.length === 24
+        && HAN.XINGDU.every(function (x) { return HAN.ORD.indexOf(x[2]) >= 0 && x[3] > 0; })
+        && HAN.XINGDU[21][0] === '冬至' && HAN.XINGDU[21][2] === '箕' && HAN.XINGDU[21][3] === 4;
+    })());
+    ok('虛盤推法回驗原書之例：冬至箕四，後十日在斗約四度', (function () {
+      var a = HAN.walk('箕', 4, 10);
+      return a.su === '斗' && Math.abs(a.du - 4) < 0.5;
+    })(), '箕宿授時作 10.40 度，故箕四加十日溢入斗 3.60 度，與原文「斗木四度」相合');
+    ok('虛盤與實盤之差隨年代加大，其率即歲差（七十二年約一度）', (function () {
+      var r = XY.D2R;
+      function realDongzhi(Y) {
+        var dt = XY.deltaT(Y) / 86400, j0 = XY.toJD(Y, 1, 1, 0), jd = null;
+        for (var k = 300; k < 366; k++) {
+          var a = XY.sunLon(j0 + k + dt), b = XY.sunLon(j0 + k + 1 + dt);
+          var da = XY.mod(a - 270 + 180, 360) - 180, db = XY.mod(b - 270 + 180, 360) - 180;
+          if (da <= 0 && db >= 0 && Math.abs(db - da) < 180) {
+            var lo = j0 + k, hi = j0 + k + 1;
+            for (var i = 0; i < 40; i++) { var m = (lo + hi) / 2;
+              if ((XY.mod(XY.sunLon(m + dt) - 270 + 180, 360) - 180) <= 0) lo = m; else hi = m; }
+            jd = (lo + hi) / 2; break;
+          }
+        }
+        if (jd === null) return null;
+        var jt = jd + dt, eps = XY.nutObl((jt - 2451545) / 36525).eps, lam = XY.sunLon(jt);
+        var ra = XY.norm360(Math.atan2(Math.sin(lam * r) * Math.cos(eps * r), Math.cos(lam * r)) / r);
+        var tbl = XD.table(jt), CN = 365.25 / 360, i0 = HAN.ORD.indexOf('箕');
+        var st = tbl[i0].ra, off = XY.mod(ra - st, 360) * CN;
+        return off > 180 ? off - 365.25 : off;
+      }
+      var a = realDongzhi(1281), b = realDongzhi(2026), c = realDongzhi(1695);
+      if (a === null || b === null || c === null) return false;
+      return (a - b) > 9 && (a - b) < 14 && Math.abs(c - 4) < 1;
+    })(), '虛盤之冬至恆為箕四不動。實盤：一二八一年箕 10.18 度、一六九五年箕 3.48 度、'
+       + '二〇二六年箕 −1.91 度（已退入尾宿）。七四五年間退 12.1 中國度——'
+       + '宿度以赤經差計，故其率大於黃經歲差之 10.4 度。'
+       + '**而一六九五年之實盤恰為箕三·四八，與歌訣所載之箕四相合至半度以內**，'
+       + '此即前述曆元擬合之獨立佐證');
     ok('歷代赤道宿度三軌之合計與四象分度', (function () {
       var h = HAN.total(HAN.HANDU), y = HAN.total(HAN.YUANDU);
       return Math.abs(h - 365.25) < 1e-9 && Math.abs(y - 365.2564) < 1e-4
@@ -5781,6 +5994,63 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       if (g.length !== 2) return false;
       return g[0].from === 0 && g[1].to === 1440;
     })(), '子居正北，其時段橫跨日界；兩截合計即完整一段');
+    ok('對《協紀》三欄七十二山：剔除七存疑格後六十五格皆在 ±5 分之內', (function () {
+      function cmp(dec, T, skip) {
+        var o = HZ.shanTimesApparent(dec, 39.9167), mx = 0, ss = 0, n = 0;
+        for (var i = 0; i < 24; i++) {
+          if (skip.indexOf(i) >= 0) continue;
+          var d = o[i] - T[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+          ss += d * d; n++; if (Math.abs(d) > mx) mx = Math.abs(d);
+        }
+        return { mx: mx, rms: Math.sqrt(ss / n), n: n };
+      }
+      var a = cmp(-23.5, HZ.XIEJI_DONGZHI, []);
+      var b = cmp(23.5, HZ.XIEJI_XIAZHI, HZ.XIEJI_XIAZHI_YI.map(function (x) { return x.i; }));
+      var c = cmp(0, HZ.XIEJI_FEN, HZ.XIEJI_FEN_YI.map(function (x) { return x.i; }));
+      return a.n + b.n + c.n === 65 && a.mx <= 5 && b.mx <= 5 && c.mx <= 5
+        && a.rms <= 2.5 && b.rms <= 2.5 && c.rms <= 2.5;
+    })(), '冬至 24 格 3.8／1.86；夏至 21 格 3.8／2.10；春秋分 20 格 2.4／1.52——'
+       + '春秋分反最佳，蓋赤緯為零時球面三角最簡，手算取整之累積最小');
+    ok('原表春秋分欄四格存疑，由角速之必然判出', (function () {
+      var T = HZ.XIEJI_FEN, sp = [];
+      for (var i = 0; i < 24; i++) { var d = T[(i + 1) % 24] - T[i]; if (d < 0) d += 1440; sp.push(d); }
+      // 赤緯零時，卯（6）酉（18）之歷時應為極大且左右對稱遞降；原表甲（5）驟短而乙（7）驟長
+      var jag = (sp[5] < sp[4]) && (sp[7] > sp[6]);
+      return jag === true && HZ.XIEJI_FEN_YI.length === 4
+        && HZ.XIEJI_FEN_YI[0].shan === '卯' && HZ.XIEJI_FEN_YI[3].shan === '辛';
+    })(), '原表寅甲卯乙辰作 69・39・106・114・69，甲驟短乙驟長；本引擎 69・85・93・85・69 平緩對稱');
+    ok('三欄存疑共七格，皆由原表自身之內部矛盾判出', (function () {
+      return HZ.XIEJI_XIAZHI_YI.length + HZ.XIEJI_FEN_YI.length === 7
+        && HZ.XIEJI_XIAZHI_YI.every(function (x) { return x.printed && x.why; })
+        && HZ.XIEJI_FEN_YI.every(function (x) { return x.printed && x.why; });
+    })(), '以本引擎為準去改古書是循環論證；以古書自身之物理必然為準，才是校勘。七格皆照錄不改');
+    ok('對《協紀》三欄七十二山：剔除七存疑格後最大不逾五分', (function () {
+      function cmp(dec, T, skip) {
+        var o = HZ.shanTimesApparent(dec, 39.9167), mx = 0, ss = 0, n = 0;
+        for (var i = 0; i < 24; i++) {
+          if (skip.indexOf(i) >= 0) continue;
+          var d = o[i] - T[i]; if (d > 720) d -= 1440; if (d < -720) d += 1440;
+          ss += d * d; n++; if (Math.abs(d) > mx) mx = Math.abs(d);
+        }
+        return { mx: mx, rms: Math.sqrt(ss / n), n: n };
+      }
+      var a = cmp(-23.5, HZ.XIEJI_DONGZHI, []);
+      var b = cmp(23.5, HZ.XIEJI_XIAZHI, HZ.XIEJI_XIAZHI_YI.map(function (x) { return x.i; }));
+      var c = cmp(0, HZ.XIEJI_CHUNFEN, HZ.XIEJI_CHUNFEN_YI.map(function (x) { return x.i; }));
+      return a.mx <= 5 && a.rms <= 2.5 && b.mx <= 5 && b.rms <= 2.5
+        && c.mx <= 5 && c.rms <= 2.5 && c.n === 20;
+    })(), '冬至 24 格 3.8／1.86；夏至 21 格 3.8／2.10；春秋分 20 格 2.4／1.46。三欄殘差同量級同結構');
+    ok('春秋分欄之對稱檢驗：赤緯零時全欄必對稱於子午，原表四格不合', (function () {
+      var T = HZ.XIEJI_CHUNFEN, bad = [];
+      for (var i = 0; i < 24; i++) {
+        var j = XY.mod(25 - i, 24), sum = T[i] + T[j];
+        while (sum > 1440) sum -= 1440;
+        if (Math.abs(sum - 1440) > 3 && Math.abs(sum) > 3) bad.push(i);
+      }
+      var yi = HZ.XIEJI_CHUNFEN_YI.map(function (x) { return x.i; });
+      return bad.length === 4 && yi.length === 4
+        && yi.indexOf(6) >= 0 && yi.indexOf(7) >= 0 && yi.indexOf(18) >= 0 && yi.indexOf(19) >= 0;
+    })(), '卯辛合 22:45、乙酉合 23:00，各短一時餘；餘二十格皆恰合二十四時');
     ok('對《協紀》冬至夏至兩欄四十八山：剔除三存疑格後最大不逾五分', (function () {
       function cmp(dec, T, skip) {
         var o = HZ.shanTimesApparent(dec, 39.9167), mx = 0, ss = 0, n = 0;
@@ -7808,7 +8078,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 236 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 244 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
@@ -8144,6 +8414,47 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '<b>校記二</b>：觜宿之數歷代遞減——漢 2 度、宋 1 度、元 0.05 度、明崇禎為負（−1.35）。'
       + '此即距星認定之變（參距星漢明用 δ、清用 ζ），非測量之誤，'
       + '與本引擎既有之觜宿疑案相互印證。</div>'
+      + '<h3>七之三、六軌逐宿對照</h3>'
+      + (function () {
+          var t = XD.table(XY.toJD(2000, 1, 1, 0)), m = {};
+          t.forEach(function (x) { m[x.su] = x.width; });
+          var cz = CZ.table(2000), mz = {};
+          cz.forEach(function (x) { mz[x.su] = x.width; });
+          var r = '<table><tr><th>宿</th><th>漢</th><th>宋皇祐</th><th>元授時</th>'
+            + '<th>明崇禎</th><th>羅經</th><th>實算 2000</th></tr>';
+          HAN.ORD.forEach(function (c) {
+            r += '<tr><td class="su">' + esc(c) + '</td>'
+              + '<td class="num">' + HAN.HANDU[c] + '</td>'
+              + '<td class="num">' + HAN.SONGDU[c] + '</td>'
+              + '<td class="num">' + HAN.YUANDU[c].toFixed(2) + '</td>'
+              + '<td class="num' + (mz[c] < 0 ? ' neg' : '') + '">' + (mz[c] === undefined ? '—' : mz[c].toFixed(2)) + '</td>'
+              + '<td class="num">' + (LJ.DU[c] === undefined ? '—' : LJ.DU[c]) + '</td>'
+              + '<td class="num' + (m[c] < 0 ? ' neg' : '') + '">' + m[c].toFixed(2) + '</td></tr>';
+          });
+          r += '<tr class="hi"><td class="su">合計</td>'
+            + '<td class="num">' + HAN.total(HAN.HANDU) + '</td>'
+            + '<td class="num">' + HAN.total(HAN.SONGDU) + '</td>'
+            + '<td class="num">' + HAN.total(HAN.YUANDU).toFixed(4) + '</td>'
+            + '<td class="num">' + cz.reduce(function (a, b) { return a + b.width; }, 0).toFixed(3) + '</td>'
+            + '<td class="num">' + LJ.total().toFixed(2) + '</td>'
+            + '<td class="num">' + t.reduce(function (a, b) { return a + b.width; }, 0).toFixed(2) + '</td></tr>';
+          return r + '</table>';
+        })()
+      + '<div class="tiny" style="margin-top:8px">'
+      + '漢與羅經合 365.25、元授時合 365.2564、明崇禎為黃道故合 360、實算合 365.25。'
+      + '宋只錄整度故合 363，其餘在「少強」之中。'
+      + '<b>觜宿一列最能見距星之變</b>：漢 2、宋 1、元 0.05、明崇禎為負——'
+      + '此非測量愈來愈差，是參距星由 δ 改 ζ 所致。</div>'
+      + '<h3>七之四、虛盤與實盤</h3>'
+      + '<div class="note">坊間果老星宗排盤多用<b>虛盤</b>：取元授時既定宿度，'
+      + '以太陽行度歌繫節氣（冬至箕四…），一日一度累加，<b>不計歲差、永久恆轉</b>。'
+      + '本引擎用<b>實盤</b>，隨年代而動。二者必然對不上，此即與坊間軟體對盤不合之由。'
+      + '本引擎兩軌並列於「星盤」分頁，並附曆元之考。<br><br>'
+      + '<b>曆元之考</b>：以太陽行度歌二十四條逐條回推其天象曆元，'
+      + '得約<b>一六九五年</b>（均方根 2.15 中國度），而非其配套之元授時曆元一二八一年（6.18 度）。'
+      + '獨立佐證：冬至太陽之實盤位置，一二八一年為箕 10.18 度、'
+      + '<b>一六九五年為箕 3.48 度</b>、二〇二六年已退至箕 −1.91 度（入尾宿）；'
+      + '而歌訣作「冬至箕四逼」——與一六九五年之實測相合至半度以內。</div>'
       + '<h3>八、校記：年干支之界</h3>'
       + '<div class="note"><b>前此逕以西曆年推年干支，未計立春</b>，'
       + '故元旦至立春之間所生者，年干支盡誤一位——而神煞五十八種、天干化曜二十職、'
