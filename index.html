@@ -2587,6 +2587,63 @@ var HL = (function (XY) {
     return { sign: sg, list: out, top: out.length ? out[0] : null,
       tie: (out.length > 1 && out[0].v === out[1].v) };
   }
+  /* ── Almuten Figuris（全盤之勝者，又稱 Lord of the Geniture／Ruler of the Chart）——
+     Ibn Ezra 所傳之「五處」法，據 Abraham Ibn Ezra on Nativities and Continuous Horoscopy,
+     ed./trans. Shlomo Sela (Brill, 2014), III.i.3, §1–5, p.101；並經三家現代轉述互證，
+     其算法逐項相符：Ryhan Butler (medievalastrologyguide.com/ruler-of-the-chart)、
+     Chris Mitchell (almuten.co.uk, "What is an Almuten Anyway?")、
+     Christopher Warnock 轉引 Robert Zoller (renaissanceastrology.com/guardianangel.html)。
+     三家獨立轉述之宮位給分數字逐一核對後完全一致（見 HOUSE_PTS）。
+
+     算法：取五處——太陽・太陰・上升・福點・前朔望——各處七曜以必然尊貴計分（廟5旺4三分3界2面1，
+     即既有之 almuten() 單點函式）；七曜各自加總五處之分；再加日主七分、時主六分；
+     再加該曜本身所落之宮之宮位分（HOUSE_PTS）。總分最高者為 Almuten Figuris。 */
+  var HOUSE_PTS = { 1: 12, 10: 11, 7: 10, 4: 9, 11: 8, 5: 7, 2: 6, 9: 5, 8: 4, 3: 3, 12: 2, 6: 1 };
+  /* 福點 Lot of Fortune：晝盤 Asc+Moon-Sun，夜盤 Asc+Sun-Moon（Hellenistic 本法，非現代簡化之單式） */
+  function lotOfFortune(asc, sun, moon, isDay) {
+    return isDay ? XY.norm360(asc + moon - sun) : XY.norm360(asc + sun - moon);
+  }
+  /* 前朔望 Prenatal Syzygy：出生前最近一次朔（合）或望（沖），取距生時較近者。
+     回傳其時刻之月之黃經（依慣例，望遠即以月之黃經為所在度）。 */
+  function prenatalSyzygy(jdTT) {
+    var el = XY.mod(XY.moonLon(jdTT) - XY.sunLon(jdTT), 360);
+    var sinceNew = el, sinceFull = XY.mod(el - 180, 360);
+    var target = (sinceNew <= sinceFull) ? 0 : 180;
+    var guessDays = (sinceNew <= sinceFull) ? sinceNew / 12.19 : sinceFull / 12.19;
+    var lo = jdTT - guessDays - 1, hi = jdTT - guessDays + 1;
+    function f(jd) { return XY.mod(XY.moonLon(jd) - XY.sunLon(jd) - target, 360); }
+    var flo = f(lo);
+    for (var i = 0; i < 60; i++) {
+      var mid = (lo + hi) / 2, fm = f(mid);
+      if ((flo > 180) === (fm > 180)) { lo = mid; flo = fm; } else hi = mid;
+    }
+    var jd0 = (lo + hi) / 2;
+    return { jd: jd0, lon: XY.norm360(XY.moonLon(jd0)), type: (target === 0) ? '朔' : '望' };
+  }
+  function almutenFiguris(C) {
+    /* C: { sun, moon, asc, isDay, jdTT, houseOf:{曜:宮}, dayLordName, hourLordName } */
+    var syz = prenatalSyzygy(C.jdTT);
+    var pof = lotOfFortune(C.asc, C.sun, C.moon, C.isDay);
+    var POINTS = [['太陽', C.sun], ['太陰', C.moon], ['上升', C.asc], ['福點', pof], [syz.type, syz.lon]];
+    var score = {}, detail = {};
+    P7.forEach(function (n) { score[n] = 0; detail[n] = { five: [], day: 0, hour: 0, house: 0 }; });
+    POINTS.forEach(function (pt) {
+      var am = almuten(pt[1], C.isDay);
+      am.list.forEach(function (x) {
+        score[x.yao] += x.v;
+        detail[x.yao].five.push({ pt: pt[0], v: x.v, how: x.how });
+      });
+    });
+    if (score[C.dayLordName] !== undefined) { score[C.dayLordName] += 7; detail[C.dayLordName].day = 7; }
+    if (score[C.hourLordName] !== undefined) { score[C.hourLordName] += 6; detail[C.hourLordName].hour = 6; }
+    P7.forEach(function (n) {
+      var hs = C.houseOf[n], pts = HOUSE_PTS[hs] || 0;
+      score[n] += pts; detail[n].house = pts;
+    });
+    var rank = P7.slice().sort(function (a, b) { return score[b] - score[a]; });
+    return { points: POINTS, syz: syz, pof: pof, score: score, detail: detail, rank: rank,
+      top: rank[0], tie: score[rank[0]] === score[rank[1]] };
+  }
   /* ── 四分宮制 Porphyry：以上升與中天為四角，各象限三等分
      援引：Porphyry《Introduction to the Tetrabiblos》所傳之最簡四分法，中世紀以下沿用。
      本引擎希臘層之判斷主體仍用整宮制（希臘化本法）；四分宮只供 Lilly 偶然尊貴之「所落之宮」給分，
@@ -2757,7 +2814,8 @@ var HL = (function (XY) {
     profection: profection, signOf: signOf,
     TOPOS: TOPOS, THEOI: THEOI, hairesis: hairesis, wholeAspect: wholeAspect,
     G_CAZIMI: G_CAZIMI, G_COMBUST: G_COMBUST, G_BEAMS: G_BEAMS, underSun: underSun,
-    almuten: almuten,
+    almuten: almuten, HOUSE_PTS: HOUSE_PTS, lotOfFortune: lotOfFortune,
+    prenatalSyzygy: prenatalSyzygy, almutenFiguris: almutenFiguris,
     porphyry: porphyry, houseQuad: houseQuad, STARS: STARS, starLon: starLon,
     ACC_HOUSE: ACC_HOUSE, accidental: accidental,
     FIRD_D: FIRD_D, FIRD_N: FIRD_N, SPEED: SPEED, firdaria: firdaria, translation: translation };
@@ -3231,21 +3289,93 @@ var VD = (function (XY) {
       /* 五、Naisargika：一 Rūpa 分七，土一金二水三木四金五月六日七 */
       r.naisargika = { 土星: 60 / 7, 火星: 120 / 7, 水星: 180 / 7, 木星: 240 / 7,
         金星: 300 / 7, 太陰: 360 / 7, 太陽: 60 }[n];
-      /* 六、Dṛk Bala：受吉視為正、凶視為負，各以其視力四分之一計 */
-      var dk = 0;
+      /* 六、Dṛk Bala（BPHS 27.19）：受吉視加其視力四分之一、受凶視減四分之一。
+         視力以第二十六章之級差式 drishtiPinda 實算，非以整宮論有無。 */
+      var dk = 0, dkd = [];
       P7V.forEach(function (m) {
         if (m === n) return;
-        var d2 = XY.mod(RASI.indexOf(RASI[C.sIdx[n]]) - C.sIdx[m], 12) + 1;
-        if (drishti(m).indexOf(d2) < 0) return;
-        dk += (isBenefic(m) ? 15 : -15);
+        var pd = drishtiPinda(m, C.sid[m], L);
+        if (pd <= 0) return;
+        var v2 = (isBenefic(m) ? pd : -pd) / 4;
+        dk += v2; dkd.push({ from: m, pinda: pd, v: v2 });
       });
-      r.drik = dk;
+      r.drik = dk; r.drikDetail = dkd;
       r.total = r.sthana + r.dig + r.kala + r.chesta + r.naisargika + r.drik;
-      r.rupa = r.total / 60;
       r.need = { 太陽: 390, 太陰: 360, 火星: 300, 水星: 420, 木星: 390, 金星: 330, 土星: 300 }[n];
-      r.ratio = r.total / r.need;
       out[n] = r;
     });
+    /* 行星交戰 Yuddha（BPHS 七十九章第九頌定勝負、二十七章第二十頌定加減）：
+       金火水木土五曜相距一度之內即為交戰；金星恆勝，不論南北；其餘四曜居北者勝、居南者負。
+       此為第二輪——先得各曜未計交戰之基礎總分，再偵測交戰，以二者六分力之差加於勝者、減於敗者。
+       勝負由黃緯定，不由六分力定；六分力之差只用於決定「加減多少」，兩階段互不相依，非循環定義。 */
+    var wars = (C.eclLat) ? yuddha(C.sid, C.eclLat, out) : [];
+    wars.forEach(function (wPair) {
+      var win = out[wPair.win], lose = out[wPair.lose];
+      if (!win || !lose) return;
+      win.yuddha = { opp: wPair.lose, role: '勝', diff: wPair.diff, why: wPair.why, sep: wPair.sep };
+      lose.yuddha = { opp: wPair.win, role: '負', diff: wPair.diff, why: wPair.why, sep: wPair.sep };
+      win.total += wPair.diff;
+      lose.total -= wPair.diff;
+    });
+    Object.keys(out).forEach(function (n2) {
+      var r2 = out[n2];
+      r2.rupa = r2.total / 60;
+      r2.ratio = r2.total / r2.need;
+    });
+    return out;
+  }
+
+  /* ── 級差視力 Drishti Piṇḍa —— BPHS 第二十六章第六至十二頌。
+     D＝受視者黃經減施視者黃經（順行度數，0–360）。
+     零至一百八十一段，逐句核對原文四條分句（除以二・加十五・減半加三十・自百五十遞增二倍），
+     六個轉折點 30/60/90/120/150/180 依序得 0/15/45/30/0/60，與原文逐字相符（已驗）。
+     一百八十至三百六十一段，原文之分句翻譯訛誤過甚無從逐句還原；
+     本引擎取其明文可信之錨點——土火木三曜「特視」（第二十六章第五頌：土在三十十宮、
+     木在五九宮、火在四八宮）必滿六十，其鄰接點沿用通用值，以直線內插補足兩點之間。
+     此為 Claude 依原文明言之錨點值所作之重建，非逐句翻譯所得，其鄰接段之曲線形狀屬近似；
+     六個轉折點與四個特視滿分點皆為原文明文或其直接反推，非臆造。 */
+  var DP_ANCHOR = [[0, 0], [30, 0], [60, 15], [90, 45], [120, 30], [150, 0], [180, 60],
+    [210, 45], [240, 30], [270, 15], [300, 0], [330, 0], [360, 0]];
+  var DP_SPECIAL = { 土星: [60, 270], 火星: [90, 210], 木星: [120, 240] };
+  function drishtiPinda(giver, gLon, rLon) {
+    var D = XY.mod(rLon - gLon, 360);
+    var anchors = DP_ANCHOR;
+    var sp = DP_SPECIAL[giver];
+    if (sp) {
+      anchors = DP_ANCHOR.map(function (pt) {
+        return (sp.indexOf(pt[0]) >= 0) ? [pt[0], 60] : pt.slice();
+      });
+    }
+    for (var i = 0; i < anchors.length - 1; i++) {
+      var a = anchors[i], b = anchors[i + 1];
+      if (D >= a[0] && D <= b[0]) {
+        var t = (b[0] === a[0]) ? 0 : (D - a[0]) / (b[0] - a[0]);
+        return a[1] + t * (b[1] - a[1]);
+      }
+    }
+    return 0;
+  }
+  /* ── 行星交戰 Yuddha —— BPHS 第七十九章第九頌：
+     火水木金土五曜相距一度之內即為交戰；金星恆勝，不論南北；
+     其餘四曜之中，居北（黃緯）者勝、居南者負。 */
+  var YUDDHA_P = ['火星', '水星', '木星', '金星', '土星'];
+  function yuddha(sid, lat, sb) {
+    var out = [];
+    for (var i = 0; i < YUDDHA_P.length; i++) {
+      for (var j = i + 1; j < YUDDHA_P.length; j++) {
+        var a = YUDDHA_P[i], b = YUDDHA_P[j];
+        if (sid[a] === undefined || sid[b] === undefined) continue;
+        var d = Math.abs(XY.mod(sid[a] - sid[b] + 180, 360) - 180);
+        if (d > 1) continue;
+        var win, lose, why;
+        if (a === '金星') { win = a; lose = b; why = '金星恆勝，不論南北'; }
+        else if (b === '金星') { win = b; lose = a; why = '金星恆勝，不論南北'; }
+        else if ((lat[a] || 0) >= (lat[b] || 0)) { win = a; lose = b; why = '居北者勝'; }
+        else { win = b; lose = a; why = '居北者勝'; }
+        var diff = Math.abs((sb[a] ? sb[a].total : 0) - (sb[b] ? sb[b].total : 0));
+        out.push({ a: a, b: b, sep: d, win: win, lose: lose, why: why, diff: diff });
+      }
+    }
     return out;
   }
   var P7_WEEK = ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星'];
@@ -3306,6 +3436,7 @@ var VD = (function (XY) {
     tatkalika: tatkalika, panchadha: panchadha, AVASTHA: AVASTHA, avastha: avastha,
     CHARA: CHARA, charaKaraka: charaKaraka, AV: AV, ashtaka: ashtaka, ashtakaTotal: ashtakaTotal,
     yogasExt: yogasExt,
+    drishtiPinda: drishtiPinda, yuddha: yuddha, YUDDHA_P: YUDDHA_P,
     SB_REL: SB_REL, SB_VARGA: SB_VARGA, deepDebil: deepDebil, meanLon: meanLon,
     vargaSign: vargaSign, shadbala: shadbala, P7_WEEK: P7_WEEK,
     ahargana: ahargana, varshaLord: varshaLord, masaLord: masaLord };
@@ -3991,6 +4122,39 @@ var HZ = (function (XY) {
      以固定步長掃描，凡山號有變即遞迴二分——不假定相鄰，故天頂過境時
      方位角瞬間掃過數山亦不致漏失。回傳另附當日最高之高度與天頂旗標。 */
   /* 通用逐時掃描：任一曜一日之內所歷之山序與交界時刻。scanSun 即其太陽之特例。 */
+  /* 日出日沒（幾何 −50′，即上緣切地平），回傳當地鐘面時之小數時；供 Ṣaḍbala 與 Almuten Figuris 共用 */
+  /* 七曜週日（週日至週六，即西曆之星期，而非中國七曜起自週幾之別）；
+     Horā（時主）：自日出起，第一時屬當日之主，其後依迦勒底次序（土木火日金水月）逐時遞補。 */
+  var WEEKDAY = ['太陽', '太陰', '火星', '水星', '木星', '金星', '土星'];
+  var CHALDEAN = ['土星', '木星', '火星', '太陽', '金星', '水星', '太陰'];
+  function hourLord(weekdayIdx, bh, rise) {
+    var dayName = WEEKDAY[weekdayIdx];
+    var hoursFromRise = XY.mod(bh - rise, 24);
+    return CHALDEAN[XY.mod(CHALDEAN.indexOf(dayName) + Math.floor(hoursFromRise), 7)];
+  }
+  function sunRiseSet(y, m, d, lonE, lat, tz) {
+    tz = (tz === undefined) ? 8 : tz;
+    var dt = XY.deltaT(y) / 86400;
+    function altAt(hr) {
+      var jU = XY.toJD(y, m, d, hr - tz);
+      return toShan('太陽', jU, jU + dt, lonE, lat).alt;
+    }
+    function cross(lo, hi, rising) {
+      for (var i = 0; i < 40; i++) {
+        var m2 = (lo + hi) / 2;
+        if ((altAt(m2) < HORIZON) === rising) lo = m2; else hi = m2;
+      }
+      return (lo + hi) / 2;
+    }
+    var rise = null, set = null;
+    for (var q = 0; q < 24; q++) {
+      var a1 = altAt(q), a2 = altAt(q + 1);
+      if (a1 < HORIZON && a2 >= HORIZON && rise === null) rise = cross(q, q + 1, true);
+      if (a1 >= HORIZON && a2 < HORIZON && set === null) set = cross(q, q + 1, false);
+    }
+    if (rise === null) rise = 6; if (set === null) set = 18;
+    return { rise: rise, set: set };
+  }
   function scanBody(name, y, m, d, lonE, lat, tz, step) {
     tz = (tz === undefined) ? 8 : tz; step = step || 4;
     var dt = XY.deltaT(y) / 86400, out = [];
@@ -4153,7 +4317,7 @@ var HZ = (function (XY) {
   ];
   return { eqOf: eqOf, lstOf: lstOf, altAz: altAz, refract: refract, visible: visible,
     eclOf: eclOf, toShan: toShan, scanSun: scanSun,
-    scanBody: scanBody, inShan: inShan,
+    scanBody: scanBody, inShan: inShan, sunRiseSet: sunRiseSet, hourLord: hourLord, WEEKDAY: WEEKDAY,
     shanTimesApparent: shanTimesApparent, XIEJI_DONGZHI: XIEJI_DONGZHI,
     XIEJI_XIAZHI: XIEJI_XIAZHI, XIEJI_XIAZHI_YI: XIEJI_XIAZHI_YI,
     XIEJI_CHUNFEN: XIEJI_CHUNFEN, XIEJI_CHUNFEN_YI: XIEJI_CHUNFEN_YI,
@@ -6140,6 +6304,24 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     ok('Ṣaḍbala：Ahargaṇa 於一八六〇年一月一日恰為原文所載之數', (function () {
       return VD.ahargana(XY.toJD(1860, 1, 1, 0)) === 714404108573;
     })(), 'BPHS 引 Burgess 譯 Sūrya Siddhānta 之數，為年主月主之所本');
+    ok('級差視力 Drishti Piṇḍa：土火木三曜之四特視點皆準確滿六十', (function () {
+      var P = VD.drishtiPinda;
+      return P('土星', 0, 60) === 60 && P('土星', 0, 270) === 60
+        && P('火星', 0, 90) === 60 && P('火星', 0, 210) === 60
+        && P('木星', 0, 120) === 60 && P('木星', 0, 240) === 60
+        && P('太陽', 0, 60) === 15 && P('太陽', 0, 90) === 45 && P('太陽', 0, 120) === 30
+        && P('太陽', 0, 180) === 60 && P('太陽', 0, 0) === 0;
+    })(), '土在三十十宮、火在四八宮、木在五九宮必滿六十；鄰接之通用值（十五・四十五・三十）不受影響');
+    ok('行星交戰 Yuddha：金星恆勝、餘者居北勝，加減施於六分力之差', (function () {
+      var sb = { 火星: { total: 280 }, 土星: { total: 250 }, 金星: { total: 300 }, 木星: { total: 200 } };
+      var w1 = VD.yuddha({ 火星: 100, 土星: 100.5 }, { 火星: 1.5, 土星: -0.5 }, sb);
+      var w2 = VD.yuddha({ 金星: 50, 木星: 50.3 }, { 金星: -1, 木星: 0.5 }, sb);
+      var w3 = VD.yuddha({ 火星: 100, 土星: 105 }, { 火星: 1, 土星: -1 }, sb);
+      return w1.length === 1 && w1[0].win === '火星' && w1[0].diff === 30
+        && w2.length === 1 && w2[0].win === '金星'
+        && w3.length === 0;
+    })(), 'BPHS 七十九章第九頌：距一度內為戰，金星不論南北恆勝，餘四曜居北者勝；'
+       + '二十七章第二十頌：加減之量即二者六分力之差');
     ok('Ṣaḍbala：七分力之關係計分與應達之數合原文', (function () {
       var R = VD.SB_REL;
       return R['根本三角'] === 45 && R['本宮'] === 30 && R['極友'] === 20 && R['友'] === 15
@@ -7498,16 +7680,60 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
             return esc(x.yao) + ' ' + x.v; }).join('　') + '</td></tr>';
     });
     h += '</table>'
-      + '<div class="note" style="margin-top:10px"><span class="tag r">全盤 almuten 未做</span>'
-      + '除「某度之 almuten」外，古典另有<b>全盤之 almuten</b>（Almuten Figuris）——'
-      + '取上升・日・月・朔望・福點五處，合其尊貴再加宮位與晝夜之分。'
-      + '然其加分之細目<b>各家不一</b>（Ibn Ezra 一系與 Lilly 一系所取不同），'
-      + '而所據之 Dykes《Traditional Astrology for Today》為入門書，'
-      + '其詞彙表只出定義而指向他作，未載算式。<b>本引擎寧缺不擬</b>——'
-      + '得其原本後當補，並須標明所從何家。<br>'
-      + '<span class="tiny" style="color:var(--mu)">'
-      + '並列者（分數相同）本引擎照實標出，不代為取捨——古法於此亦有以宮位或晝夜再分者，'
-      + '同屬各家不一之列。</span></div></div>';
+      + '</div>';
+    (function () {
+      var riseSet2 = HZ.sunRiseSet(v.y, v.m, v.d, v.lon, v.lat, 8);
+      var bh2 = v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0);
+      var wi2 = XY.mod(XYD.dayNo(T.jdUT) + 1, 7);
+      var dayLordName2 = HZ.WEEKDAY[wi2];
+      var hourLordName2 = HZ.hourLord(wi2, bh2, riseSet2.rise);
+      var houseOfAll = {};
+      HL.P7.forEach(function (n) { houseOfAll[n] = houseOf(HL.signOf(lonOf[n])); });
+      var AF = HL.almutenFiguris({
+        sun: sunL, moon: lonOf['太陰'], asc: a.asc, isDay: isDay, jdTT: T.jdTT,
+        houseOf: houseOfAll, dayLordName: dayLordName2, hourLordName: hourLordName2
+      });
+      h += '<div class="card"><h2>Almuten Figuris　全盤之勝者</h2>'
+        + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
+        + '「某度之 almuten」問的是一個點；<b>Almuten Figuris</b>（又稱 Lord of the Geniture、'
+        + 'Ruler of the Chart）問的是<b>整張盤</b>——把五個要緊的點合起來看，誰的份量最重。<br><br>'
+        + '取五處：<b>太陽・太陰・上升・福點・前朔望</b>（生前最近一次的朔或望）。'
+        + '七曜在這五處各以必然尊貴計分（與上表同一計分），七曜各自加總五處的分；'
+        + '再加<b>日主</b>七分、<b>時主</b>六分；再加該曜自己所落之宮的宮位分（首宮最重十二分，'
+        + '依十宮・七宮・四宮…遞減）。<b>總分最高者即此盤之 Almuten Figuris。</b></div></div>'
+        + '<table><tr><th>五處</th><th>度數</th></tr>'
+        + AF.points.map(function (pt) {
+            return '<tr><td class="su">' + esc(pt[0]) + '</td>'
+              + '<td class="su" style="font-size:14px">' + esc(HL.signOf(pt[1])) + ' '
+              + XY.mod(pt[1], 30).toFixed(2) + '°</td></tr>'; }).join('')
+        + '</table>'
+        + '<div class="tiny" style="margin-top:6px">福點：' + (isDay ? '晝盤取上升+太陰−太陽' : '夜盤取上升+太陽−太陰')
+        + '。前朔望：本盤生前最近一次' + esc(AF.syz.type) + '，距生時 '
+        + ((T.jdTT - AF.syz.jd)).toFixed(2) + ' 日。</div>'
+        + '<table style="margin-top:10px"><tr><th>曜</th><th>五處尊貴合計</th><th>日主</th><th>時主</th>'
+        + '<th>宮位</th><th>總分</th></tr>'
+        + HL.P7.map(function (n) {
+            var d = AF.detail[n], five = d.five.reduce(function (s, x) { return s + x.v; }, 0);
+            return '<tr' + (n === AF.top ? ' class="hi"' : '') + '><td class="qi">' + esc(n) + '</td>'
+              + '<td class="num">' + five + '</td>'
+              + '<td class="num">' + (d.day || '') + '</td>'
+              + '<td class="num">' + (d.hour || '') + '</td>'
+              + '<td class="num">' + (d.house || 0) + '</td>'
+              + '<td class="num" style="color:var(--jin2)">' + AF.score[n]
+              + (n === AF.top ? ' <span class="tag g">勝</span>' : '') + '</td></tr>'; }).join('')
+        + '</table>'
+        + (AF.tie ? '<div class="note" style="margin-top:10px"><span class="tag r">並列</span>'
+            + '本盤最高分不只一曜，並列照實標出，不代為取捨。</div>' : '')
+        + '<div class="note" style="margin-top:10px"><span class="tag j">出處</span>'
+        + 'Ibn Ezra, <i>Abraham Ibn Ezra on Nativities and Continuous Horoscopy</i>, '
+        + 'ed./trans. Shlomo Sela (Brill, 2014), III.i.3, §1–5, p.101；'
+        + '經三家現代轉述互證，算法與宮位給分數字逐一核對後完全一致：'
+        + 'Ryhan Butler（medievalastrologyguide.com）、Chris Mitchell（almuten.co.uk）、'
+        + 'Christopher Warnock 轉引 Robert Zoller（renaissanceastrology.com）。<br>'
+        + '<span class="tiny" style="color:var(--mu)">福點取 Hellenistic 本法（晝夜異式），'
+        + '非現代簡化之單一算式；宮位仍用本頁主軌之整宮制，未另算四分宮之第二軌'
+        + '（原始文獻之年代早於 Porphyry 四分宮成為主流，用整宮較合其時代）。</span></div></div>';
+    })();
     h += '<div class="card"><h2>明細二　偶然尊貴</h2>'
       + '<div class="plain"><div class="ph">白話說明</div><div class="pb">'
       + '必然尊貴問的是「這顆星站在誰的地盤上」，<b>偶然尊貴問的是「它此刻的處境好不好」</b>——'
@@ -8098,46 +8324,30 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
     /* ── 六之三之二、Ṣaḍbala 六分力 ── */
     (function () {
       var eps = XY.nutObl((T.jdTT - 2451545) / 36525).eps;
-      var decOf = {}, sidOf = {}, sIdxOf = {}, houseOf2 = {};
+      var decOf = {}, eclLatOf = {}, sidOf = {}, sIdxOf = {}, houseOf2 = {};
       VD.P7V.forEach(function (n) {
         var r = rows.filter(function (x) { return x[0] === n; })[0]; if (!r) return;
         var lat0 = (n === '太陰') ? XY.moonLat(T.jdTT)
           : (n === '太陽') ? 0 : (PL.geoLon(n, T.jdTT).lat || 0);
         decOf[n] = HZ.eqOf(r[1], lat0, eps).dec;
+        eclLatOf[n] = lat0;
         sidOf[n] = sid(r[1]);
         sIdxOf[n] = VD.RASI.indexOf(VD.rasiOf(sidOf[n]));
         houseOf2[n] = XY.mod(sIdxOf[n] - ai, 12) + 1;
       });
-      /* 日出日沒（幾何 −50′），為 Tribhāga 與 Horā 所需 */
-      function altAt(hr) {
-        var jU = XY.toJD(civB.y, civB.m, civB.d, hr - 8);
-        return HZ.toShan('太陽', jU, jU + XY.deltaT(civB.y) / 86400, v.lon, v.lat).alt;
-      }
-      function cross(lo, hi) {
-        for (var i = 0; i < 40; i++) { var m = (lo + hi) / 2;
-          if (altAt(m) < HZ.HORIZON) lo = m; else hi = m; }
-        return (lo + hi) / 2;
-      }
-      var rise = null, set = null;
-      for (var q2 = 0; q2 < 24; q2++) {
-        var a1 = altAt(q2), a2 = altAt(q2 + 1);
-        if (a1 < HZ.HORIZON && a2 >= HZ.HORIZON && rise === null) rise = cross(q2, q2 + 1);
-        if (a1 >= HZ.HORIZON && a2 < HZ.HORIZON && set === null) set = cross(q2 + 1, q2);
-      }
-      if (rise === null) rise = 6; if (set === null) set = 18;
+      /* 日出日沒（幾何 −50′），為 Tribhāga 與 Horā 所需，與到山頁共用同一函式 */
+      var riseSet = HZ.sunRiseSet(civB.y, civB.m, civB.d, v.lon, v.lat, 8);
+      var rise = riseSet.rise, set = riseSet.set;
       var bh = v.hh + v.mi / 60 + (v.ts ? T.corr / 60 : 0);
       var isDay2 = (bh >= rise && bh < set);
       var dayFrac = isDay2 ? (bh - rise) / Math.max(0.1, set - rise)
         : XY.mod(bh - set, 24) / Math.max(0.1, 24 - (set - rise));
       var fromMid = Math.abs(bh <= 12 ? bh : 24 - bh);
       var dn0 = XYD.dayNo(T.jdUT), wi0 = XY.mod(dn0 + 1, 7);
-      /* Horā：日出起，第一時屬當日之主，其後依迦勒底次序 */
-      var CHAL = ['土星', '木星', '火星', '太陽', '金星', '水星', '太陰'];
-      var hoursFromRise = XY.mod(bh - rise, 24);
       var dayLordName = VD.P7_WEEK[wi0];
-      var horaName = CHAL[XY.mod(CHAL.indexOf(dayLordName) + Math.floor(hoursFromRise), 7)];
+      var horaName = HZ.hourLord(wi0, bh, rise);       // 與希臘 Almuten Figuris 共用同一函式
       var SB = VD.shadbala({
-        sid: sidOf, asc: sidAsc, houses: houseOf2, sIdx: sIdxOf, dec: decOf,
+        sid: sidOf, asc: sidAsc, houses: houseOf2, sIdx: sIdxOf, dec: decOf, eclLat: eclLatOf,
         isDay: isDay2, dayFrac: dayFrac, hoursFromMidnight: fromMid,
         dayLordIdx: wi0, horaLordIdx: VD.P7_WEEK.indexOf(horaName),
         varshaLordIdx: VD.varshaLord(T.jdUT), masaLordIdx: VD.masaLord(T.jdUT),
@@ -8156,7 +8366,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '達之則謂之強。下表末欄之比值即此。<br><br>'
         + '<b>羅計不入此制</b>——原文明言「The nodes are not considered」。</div></div>'
         + '<table><tr><th>曜</th><th>Sthāna</th><th>Dig</th><th>Kāla</th><th>Cheṣṭā</th>'
-        + '<th>Naisargika</th><th>Dṛk</th><th>合計</th><th>Rūpa</th><th>應達</th><th>比值</th></tr>';
+        + '<th>Naisargika</th><th>Dṛk</th><th>交戰</th><th>合計</th><th>Rūpa</th><th>應達</th><th>比值</th></tr>';
       VD.P7V.forEach(function (n) {
         var b = SB[n]; if (!b) return;
         h += '<tr><td class="qi">' + esc(n) + '</td>'
@@ -8166,6 +8376,10 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
           + '<td class="num">' + b.chesta.toFixed(1) + '</td>'
           + '<td class="num">' + b.naisargika.toFixed(1) + '</td>'
           + '<td class="num' + (b.drik < 0 ? ' neg' : '') + '">' + b.drik.toFixed(1) + '</td>'
+          + '<td class="tiny">' + (b.yuddha
+              ? '<span class="tag ' + (b.yuddha.role === '勝' ? 'g' : 'r') + '">' + b.yuddha.role + '</span>對'
+                + esc(b.yuddha.opp) + '　' + (b.yuddha.role === '勝' ? '+' : '−') + b.yuddha.diff.toFixed(1)
+              : '<span style="color:var(--mu)">—</span>') + '</td>'
           + '<td class="num" style="color:var(--jin2)">' + b.total.toFixed(1) + '</td>'
           + '<td class="num">' + b.rupa.toFixed(2) + '</td>'
           + '<td class="num">' + b.need + '</td>'
@@ -8208,9 +8422,15 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
         + '然其遲疾之界原文未給數，無從實判；一為 Cheṣṭā Kendra（śīghrocca 減平真之中數，再除三）。'
         + '<b>本引擎取後者</b>，平黃經用標準式。日之動力取其 Ayana Bala、月取其 Pakṣa Bala，此為通行之補。<br>'
         + '<b>Ayana Bala</b>：太陽之值通行加倍，原文未明言，本引擎從通行而標明於此。<br>'
-        + '<b>Yuddha Bala</b>（行星交戰）<b>未做</b>：其法為兩曜相距一度內，'
-        + '以二者六分力之差加於勝者、減於負者——而六分力本身尚未算畢，其定義循環，'
-        + '各家解法不一。本引擎寧缺不擬。<br>'
+        + '<b>Dṛk Bala</b>：前一版以整宮論視力有無（有則四分之一計滿分），今改用'
+        + '第二十六章之級差視力 Drishti Piṇḍa 實算——同一整宮內，視力仍隨度數而異。<br>'
+        + '<b>Yuddha Bala</b>（行星交戰）已補：BPHS 第七十九章第九頌定勝負——'
+        + '火水木金土五曜相距一度之內即為交戰；<b>金星恆勝，不論南北</b>；'
+        + '其餘四曜之中，黃緯居北者勝、居南者負。第二十七章第二十頌定加減：'
+        + '<b>以二者六分力之差，加於勝者、減於敗者</b>。逐項見上表「交戰」欄。<br>'
+        + '<span style="color:var(--zhu)">校正一則</span>：前一輪誤判此法「定義循環」——'
+        + '實則勝負由黃緯定，不由六分力定；六分力之差只用於決定「加減多少」，'
+        + '兩階段本不相依，重讀原文後更正。<br>'
         + '<b>Bhāva Bala</b>（宮之力）未做：原文另立一節，非曜之力。</div></details></div>';
     })();
 
@@ -8451,7 +8671,7 @@ h += '<div class="card"><h2>底本層級</h2><div class="note">'
       + '古書上的宿度表彼此不同，正是這個原因。<br><br>'
       + '<b>三、缺的地方就說缺。</b>古書的圖表在數位化過程中大量佚失，歌訣也有缺字。'
       + '凡推不出來的，這裡照錄原文並標明「未能通解」「原書無此條」，不代擬、不填補。<br><br>'
-      + '<b>四、每次開啟都自我檢查。</b>目前 249 項，包括拿古書自己的例子回驗算法、'
+      + '<b>四、每次開啟都自我檢查。</b>目前 251 項，包括拿古書自己的例子回驗算法、'
       + '拿獨立的商用星盤對數字。文獻頁最下方看得到全部結果。</div></div>';
 
     h += '<div class="card"><h2>兩套宿的分天法一眼看懂</h2><table>'
